@@ -60,6 +60,13 @@ class KibbleBit:
                     id=source['sourceID'],
                     body = source
         )
+        
+    def get(self, doctype, docid):
+        """ Fetches a document from the DB """
+        doc = self.broker.DB.get(index=self.broker.config['elasticsearch']['database'], doc_type=doctype, id = docid)
+        if doc:
+            return doc['_source']
+        return None
     
     def exists(self, doctype, docid):
         """ Checks whether a document already exists or not """
@@ -97,7 +104,7 @@ class KibbleBit:
         try:
             elasticsearch.helpers.bulk(self.broker.DB, js_arr)
         except Exception as err:
-            print("Warning: Could not bulk insert: %s" % err)
+            pprint("Warning: Could not bulk insert: %s" % err)
         
 
 class KibbleOrganisation:
@@ -135,6 +142,9 @@ class KibbleOrganisation:
                     'bool': {
                         'must': mustArray
                     }
+                },
+                'sort': {
+                    'sourceURL': 'asc'
                 }
             }
         )

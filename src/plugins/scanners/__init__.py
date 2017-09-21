@@ -26,7 +26,8 @@ import importlib
 __all__ = [
     'jira',
     'ponymail',
-    'pipermail'
+    'pipermail',
+    'github-issues'
     ]
 
 # Import each plugin into a hash called 'scanners'

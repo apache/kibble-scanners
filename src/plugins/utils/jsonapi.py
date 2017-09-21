@@ -22,6 +22,7 @@ import requests
 import json
 import time
 import re
+import base64
 
 def get(url, cookie = None, auth = None):
     headers = {
@@ -29,14 +30,16 @@ def get(url, cookie = None, auth = None):
         "Accept": "*/*"
     }
     if auth:
-        xcreds = creds.encode(encoding='ascii', errors='replace')
-        auth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
-        headers["Authorization"] = "Basic %s" % auth
+        xcreds = auth.encode(encoding='ascii', errors='replace')
+        bauth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
+        headers["Authorization"] = "Basic %s" % bauth
     if cookie:
         headers["Cookie"] = cookie
     rv = requests.get(url, headers = headers)
     js = rv.json()
-    return js
+    if rv.status_code != 404:
+        return js
+    return None
 
 def post(url, data, cookie = None, auth = None):
     headers = {
@@ -44,9 +47,9 @@ def post(url, data, cookie = None, auth = None):
         "Accept": "*/*"
     }
     if auth:
-        xcreds = creds.encode(encoding='ascii', errors='replace')
-        auth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
-        headers["Authorization"] = "Basic %s" % auth
+        xcreds = auth.encode(encoding='ascii', errors='replace')
+        bauth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
+        headers["Authorization"] = "Basic %s" % bauth
     if cookie:
         headers["Cookie"] = cookie
     rv = requests.post(url, headers = headers, json = data)

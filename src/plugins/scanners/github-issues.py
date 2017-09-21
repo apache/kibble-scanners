@@ -29,7 +29,7 @@ def accepts(source):
     """ Return true if this is a github repo """
     if source['type'] == 'github':
         return True
-    if source['type'] == 'git' and re.match(r"https://(?:www\.)?github.com/"):
+    if source['type'] == 'git' and re.match(r"https://(?:www\.)?github.com/", source['sourceURL']):
         return True
     return False
 

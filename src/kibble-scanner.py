@@ -25,7 +25,7 @@ import time
 import re
 import argparse
 import plugins.scanners
-import plugins.kibbleES
+import plugins.brokers.kibbleES
 #import plugins.kibbleJSON
 
 VERSION = "0.1.0"
@@ -76,7 +76,7 @@ class scanThread(threading.Thread):
                 # Run through list of scanners in order, apply when useful
                 for sid, scanner in plugins.scanners.enumerate():
                     if scanner.accepts(obj):
-                        self.bit.pluginname = "plugins/" + sid
+                        self.bit.pluginname = "plugins/scanners/" + sid
                         scanner.scan(self.bit, obj)
             else:
                 break
@@ -98,10 +98,10 @@ def main():
     broker = None
     if 'elasticsearch' in config and config['elasticsearch'].get('enabled', False):
         pprint("Using direct ElasticSearch broker model")
-        broker = plugins.kibbleES.Broker(config)
+        broker = plugins.brokers.kibbleES.Broker(config)
     else:
         pprint("Using HTTP JSON broker model")
-        broker = plugins.kibbleJSON.Broker(config)
+        broker = plugins.brokers.kibbleJSON.Broker(config)
     
     orgNo = 0
     sourceNo = 0

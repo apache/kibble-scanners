@@ -23,7 +23,7 @@ import json
 import time
 import re
 
-def getJSON(url, cookie = None, auth = None):
+def get(url, cookie = None, auth = None):
     headers = {
         "Content-type": "application/json",
         "Accept": "*/*"
@@ -38,4 +38,18 @@ def getJSON(url, cookie = None, auth = None):
     js = rv.json()
     return js
 
-    
+def post(url, data, cookie = None, auth = None):
+    headers = {
+        "Content-type": "application/json",
+        "Accept": "*/*"
+    }
+    if auth:
+        xcreds = creds.encode(encoding='ascii', errors='replace')
+        auth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
+        headers["Authorization"] = "Basic %s" % auth
+    if cookie:
+        headers["Cookie"] = cookie
+    rv = requests.post(url, headers = headers, json = data)
+    js = rv.json()
+    return js
+

@@ -108,7 +108,7 @@ def scan(KibbleBit, source):
             KibbleBit.pprint(statsurl)
             pd = datetime.date(year, month, 1).timetuple()
             try:
-                js = plugins.jsonapi.getJSON(statsurl, cookie = "ponymail=8b322b7a468f0814b4035de93853d74f27cd12fe%3d%3ddaniel%40quenda.co")
+                js = plugins.jsonapi.get(statsurl, cookie = "ponymail=8b322b7a468f0814b4035de93853d74f27cd12fe%3d%3ddaniel%40quenda.co")
             except Exception as err:
                 KibbleBit.pprint("Server error, skipping this month")
                 month -= 1            

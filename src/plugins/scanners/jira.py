@@ -102,8 +102,6 @@ def pchange(js):
                 return True
     return False
 
-pendingTickets = []
-
 
 def scanTicket(KibbleBit, key, u, source, creds, openTickets):
     """ Scans a single ticket for activity and people """

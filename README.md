@@ -19,4 +19,11 @@ The Kibble Scanners collect information for the Apache Kibble Suite.
  - - - `utils`: Utility libraries
  - - - `scanners`: The individual scanner applications
 
+## Currently available scanner plugins:
+
+ - Apache Pony Mail
+ - GNU Mailman Pipermail
+ - Atlassian JIRA
+ 
+ 
 

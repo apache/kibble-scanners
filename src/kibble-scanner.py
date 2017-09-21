@@ -29,7 +29,7 @@ import plugins.kibbleES
 #import plugins.kibbleJSON
 
 VERSION = "0.1.0"
-CONFIG_FILE = "../conf/config.yaml"
+CONFIG_FILE = "conf/config.yaml"
 PENDING_OBJECTS = []
 BIG_LOCK = threading.Lock()
 

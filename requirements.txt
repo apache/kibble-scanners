@@ -1,0 +1,6 @@
+bttf
+certifi
+elasticsearch
+psutil
+python-dateutil
+requests

@@ -1,0 +1,23 @@
+# If enabled, kibble scanners will use direct ES connection.
+elasticsearch:
+    enabled:    true
+    hostname:   localhost
+    port:       9200
+    ssl:        false
+    uri:        ""
+    database:   kibble
+
+# If enabled, kibble scanners will use the HTTP JSON API
+broker:
+    enabled:    false
+    url:        https://localhost/api/
+    auth:
+        username:   kibble
+        password:   kibble4life
+
+# Scanner client options
+scanner:
+    # scratchdir: Location for storing file objects like git repos etc
+    # This should be permanent to speed up scans of large repositories
+    # on consecutive scans, but may be ephemeral like /tmp
+    scratchdir:     /tmp

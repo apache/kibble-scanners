@@ -24,7 +24,8 @@ import importlib
 
 # Define, in order of priority, all scanner plugins we have
 __all__ = [
-    'ponymail'
+    'ponymail',
+    'pipermail'
     ]
 
 # Import each plugin into a hash called 'scanners'

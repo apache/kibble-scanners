@@ -66,6 +66,21 @@ def scan(KibbleBit, source):
         KibbleBit.updateSource(source)
         return
     
+    # Pony Mail requires a UI cookie in order to work. Maked sure we have one!
+    cookie = None
+    if 'auth' in source:
+        cookie = source['auth'].get('cookie', None)
+    if not cookie:
+        KibbleBit.pprint("Pony Mail instance at %s requires an authorized cookie, none found! Bailing." % source['sourceURL'])
+        source['steps']['mail'] = {
+            'time': time.time(),
+            'status': 'No authorized cookie found in source object.',
+            'running': False,
+            'good': False
+        }
+        KibbleBit.updateSource(source)
+        return
+    
     # Notify scanner and DB that this is valid and we've begun parsing
     KibbleBit.pprint("%s is a valid Pony Mail address, parsing" % source['sourceURL'])
     source['steps']['mail'] = {
@@ -108,7 +123,7 @@ def scan(KibbleBit, source):
             KibbleBit.pprint(statsurl)
             pd = datetime.date(year, month, 1).timetuple()
             try:
-                js = plugins.utils.jsonapi.get(statsurl, cookie = "ponymail=8b322b7a468f0814b4035de93853d74f27cd12fe%3d%3ddaniel%40quenda.co")
+                js = plugins.utils.jsonapi.get(statsurl, cookie = cookie)
             except Exception as err:
                 KibbleBit.pprint("Server error, skipping this month")
                 month -= 1            

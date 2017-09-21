@@ -14,5 +14,9 @@ The Kibble Scanners collect information for the Apache Kibble Suite.
  - `conf/`: Config files
  - `src/`:
  - - `kibble-scanner.py`: Main script for launching scans
- - - `plugins/`: Plugin directory.
+ - - `plugins/`:
+ - - - `brokers`: The various database brokers (ES or JSON API)
+ - - - `utils`: Utility libraries
+ - - - `scanners`: The individual scanner applications
+
 

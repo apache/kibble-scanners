@@ -40,6 +40,7 @@ def base_parser():
     arg_parser.add_argument("-a", "--age", help="Minimum age in hours before performing a new scan on an already processed source. --age 12 will not process any source that was processed less than 12 hours ago, but will process new sources.")
     arg_parser.add_argument("-s", "--source", help="A specific source (wildcard) to run scans on.")
     arg_parser.add_argument("-n", "--nodes", help="Number of nodes in the cluster (used for load balancing)")
+    arg_parser.add_argument("-t", "--type", help="Specific type of scanner to run (default is run all scanners)")
     return arg_parser
    
 def pprint(string, err = False):
@@ -52,18 +53,20 @@ def pprint(string, err = False):
 class scanThread(threading.Thread):
     """ A thread object that grabs an item from the queue and processes
         it, using whatever plugins will come out to play. """
-    def __init__(self, broker, org, i):
+    def __init__(self, broker, org, i, t = None):
         super(scanThread, self).__init__()
         self.broker = broker
         self.org = org
         self.id = i
         self.bit = self.broker.bitClass(self.broker, self.org, i)
+        self.stype = t
         pprint("Initialized thread %i" % i)
     
     def run(self):
         global BIG_LOCK, PENDING_OBJECTS
         time.sleep(0.5) # Primarily to align printouts.
         # While there are objects to snag
+        a = 0
         while PENDING_OBJECTS:
             BIG_LOCK.acquire(blocking = True)
             try:
@@ -77,7 +80,8 @@ class scanThread(threading.Thread):
                 for sid, scanner in plugins.scanners.enumerate():
                     if scanner.accepts(obj):
                         self.bit.pluginname = "plugins/scanners/" + sid
-                        scanner.scan(self.bit, obj)
+                        if not self.stype or self.stype == sid:
+                            scanner.scan(self.bit, obj)
             else:
                 break
         self.bit.pluginname = "core"
@@ -134,7 +138,7 @@ def main():
             threads = []
             core_count = min((4, int( multiprocessing.cpu_count() )))
             for i in range(0, core_count):
-                sThread = scanThread(broker, org, i+1)
+                sThread = scanThread(broker, org, i+1, args.type)
                 sThread.start()
                 threads.append(sThread)
             

@@ -23,6 +23,7 @@ The Kibble Scanners collect information for the Apache Kibble Suite.
 
  - Apache Pony Mail
  - Atlassian JIRA
+ - BugZilla Issue Tracker
  - GitHub issues/PRs
  - GNU Mailman Pipermail
  

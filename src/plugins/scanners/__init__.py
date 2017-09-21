@@ -27,7 +27,8 @@ __all__ = [
     'jira',
     'ponymail',
     'pipermail',
-    'github-issues'
+    'github-issues',
+    'bugzilla'
     ]
 
 # Import each plugin into a hash called 'scanners'

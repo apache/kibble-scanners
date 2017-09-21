@@ -184,13 +184,13 @@ def scan(KibbleBit, source):
                         KibbleBit.pprint("Couldn't parse %s, skipping: %s" % (gzurl, err))
                         skipped += 1
                         if skipped > 12:
-                            print("12 skips in a row, breaking off (no more data?)")
+                            KibbleBit.pprint("12 skips in a row, breaking off (no more data?)")
                             break
                 else:
                     KibbleBit.pprint("Couldn't find %s, skipping." % gzurl)
                     skipped += 1
                     if skipped > 12:
-                        print("12 skips in a row, breaking off (no more data?)")
+                        KibbleBit.pprint("12 skips in a row, breaking off (no more data?)")
                         break
             month -= 1            
             if month <= 0:

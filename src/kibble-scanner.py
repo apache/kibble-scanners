@@ -49,6 +49,20 @@ def pprint(string, err = False):
         sys.stderr.write(line + "\n")
     else:
         print(line)
+        
+
+def isMine(ID, config):
+    if config['scanner'].get('balance',  None):
+        a = config['scanner']['balance'].split('/')
+        nodeNo = int(a[0])
+        numNodes = int(a[1])
+        if numNodes == 0:
+            return True
+        bignum = int(ID, 16) % numNodes
+        if bignum == int(nodeNo)-1:
+            return True
+        return False
+    return True
     
 class scanThread(threading.Thread):
     """ A thread object that grabs an item from the queue and processes
@@ -76,12 +90,14 @@ class scanThread(threading.Thread):
                 pass
             BIG_LOCK.release()
             if obj:
-                # Run through list of scanners in order, apply when useful
-                for sid, scanner in plugins.scanners.enumerate():
-                    if scanner.accepts(obj):
-                        self.bit.pluginname = "plugins/scanners/" + sid
-                        if not self.stype or self.stype == sid:
-                            scanner.scan(self.bit, obj)
+                # If load balancing jobs, make sure this one is ours
+                if isMine(obj['sourceID'], self.broker.config):
+                    # Run through list of scanners in order, apply when useful
+                    for sid, scanner in plugins.scanners.enumerate():
+                        if scanner.accepts(obj):
+                            self.bit.pluginname = "plugins/scanners/" + sid
+                            if not self.stype or self.stype == sid:
+                                scanner.scan(self.bit, obj)
             else:
                 break
         self.bit.pluginname = "core"

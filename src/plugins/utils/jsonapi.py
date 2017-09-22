@@ -41,6 +41,24 @@ def get(url, cookie = None, auth = None):
         return js
     return None
 
+def gettxt(url, cookie = None, auth = None):
+    """ Same as above, but returns as text blob """
+    headers = {
+        "Content-type": "application/json",
+        "Accept": "*/*"
+    }
+    if auth:
+        xcreds = auth.encode(encoding='ascii', errors='replace')
+        bauth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
+        headers["Authorization"] = "Basic %s" % bauth
+    if cookie:
+        headers["Cookie"] = cookie
+    rv = requests.get(url, headers = headers)
+    js = rv.text
+    if rv.status_code != 404:
+        return js
+    return None
+
 def post(url, data, cookie = None, auth = None):
     headers = {
         "Content-type": "application/json",

@@ -33,6 +33,7 @@ def count(path):
     cost = 0
     codecount = ""
     comment = ""
+    blank = ""
     if m:
         lingos = m.group(1)
         fcount = m.group(2)
@@ -58,8 +59,10 @@ def count(path):
                     'blank': int(lm.group(2))+E
                     }
         ccount = int(codecount.replace(",", "")) + int(comment.replace(",", ""))
+        codecount = int(codecount.replace(",,", ""))
+        blank = int(blank.replace(",,", ""))
+        comment = int(comment.replace(",,", ""))
         years = ccount / 3300.0
         cost = years * 72000
-        
     return [languages, codecount, comment, blank, years, cost]
     

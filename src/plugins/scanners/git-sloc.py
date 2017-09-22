@@ -67,9 +67,9 @@ def scan(KibbleBit, source):
         
         sloc = {
             'sourceID': source['sourceID'],
-            'loc': int(codecount.replace(",", "")),
-            'comments': int(comment.replace(",", "")),
-            'blanks': int(blank.replace(",", "")),
+            'loc': codecount,
+            'comments': comment,
+            'blanks': blank,
             'years': years,
             'cost': cost,
             'languages': languages

@@ -82,6 +82,7 @@ class KibbleBit:
         self.json_queue.append(doc)
         # If we've crossed the bulk limit, do a push
         if len(self.json_queue) > self.queueMax:
+            pprint("Bulk push forced")
             self.bulk()
         
     def bulk(self):

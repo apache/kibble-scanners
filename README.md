@@ -24,6 +24,7 @@ The Kibble Scanners collect information for the Kibble Suite.
  - Apache Pony Mail (`plugins/scanners/ponymail.py`)
  - Atlassian JIRA (`plugins/scanners/jira.py`)
  - BugZilla Issue Tracker (`plugins/scanners/bugzilla.py`)
+ - Gerrit Code Review (`plugins/scanners/gerrit.py`)
  - Git Repository fetcher (`plugins/scanners/git-sync.py`)
  - GitHub issues/PRs (`plugins/scanners/github.py`)
  - GNU Mailman Pipermail (`plugins/scanners/pipermail.py`)

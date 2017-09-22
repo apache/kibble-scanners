@@ -26,6 +26,7 @@ import importlib
 __all__ = [
     'git-sync',     # This needs to precede other VCS scanners!
     'git-census',
+    'git-sloc',
     'jira',
     'ponymail',
     'pipermail',

@@ -27,6 +27,7 @@ __all__ = [
     'git-sync',     # This needs to precede other VCS scanners!
     'git-census',
     'git-sloc',
+    'git-evolution',
     'jira',
     'ponymail',
     'pipermail',

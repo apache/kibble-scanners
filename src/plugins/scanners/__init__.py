@@ -24,6 +24,7 @@ import importlib
 
 # Define, in order of priority, all scanner plugins we have
 __all__ = [
+    'git-sync',     # This needs to precede other VCS scanners!
     'jira',
     'ponymail',
     'pipermail',

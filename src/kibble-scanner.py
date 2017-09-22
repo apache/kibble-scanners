@@ -88,7 +88,7 @@ class scanThread(threading.Thread):
         self.bit.pprint("No more objects, exiting!")
 
 def main():
-    pprint("Apache Kibble Scanner v/%s starting" % VERSION)
+    pprint("Kibble Scanner v/%s starting" % VERSION)
     global CONFIG_FILE, PENDING_OBJECTS
     args = base_parser().parse_args()
     

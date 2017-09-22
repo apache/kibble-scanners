@@ -1,5 +1,5 @@
 # Kibble Scanner Application
-The Kibble Scanners collect information for the Apache Kibble Suite.
+The Kibble Scanners collect information for the Kibble Suite.
 
 ## Setup instructions:
 

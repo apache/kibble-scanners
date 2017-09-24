@@ -163,7 +163,7 @@ def scan(KibbleBit, source):
                     quarter += 12
                     year -= 1
                 while now > ts:
-                    pd = datetime.date(year, quarter, 1).timetuple()
+                    pd = datetime.datetime(year, quarter, 1).replace(tzinfo=datetime.timezone.utc).timetuple()
                     date = time.strftime("%Y-%b-%d 0:00", pd)
                     unix = time.mktime(pd)
     

@@ -51,7 +51,28 @@ def countSubs(struct, kids = 0):
             kids += 1
             kids += countSubs(child)
     return kids
-    
+
+def repliedTo(emails, struct):
+    myList = {}
+    for eml in struct:
+        myID = eml['tid']
+        if 'children' in eml:
+            for child in eml['children']:
+                myList[child['tid']] = myID
+                if len(child['children']) > 0:
+                    cList = repliedTo(emails, child['children'])
+                    myList.update(cList)
+    return myList
+
+def getSender(email):
+    sender = email['from']
+    name = sender
+    m = re.match(r"(.+)\s*<(.+)>", email['from'], flags=re.UNICODE)
+    if m:
+        name = m.group(1).replace('"', "").strip()
+        sender = m.group(2)
+    return sender
+
 def scan(KibbleBit, source):
     # Validate URL first
     url = re.match(r"(https?://.+)/list\.html\?(.+)@(.+)", source['sourceURL'])
@@ -68,8 +89,8 @@ def scan(KibbleBit, source):
     
     # Pony Mail requires a UI cookie in order to work. Maked sure we have one!
     cookie = None
-    if 'auth' in source:
-        cookie = source['auth'].get('cookie', None)
+    if 'creds' in source and source['creds']:
+        cookie = source['creds'].get('cookie', None)
     if not cookie:
         KibbleBit.pprint("Pony Mail instance at %s requires an authorized cookie, none found! Bailing." % source['sourceURL'])
         source['steps']['mail'] = {
@@ -137,6 +158,7 @@ def scan(KibbleBit, source):
             else:
                 KibbleBit.pprint("JSON was missing fields, aborting!")
                 break
+            replyList = repliedTo(js['emails'], js['thread_struct'])
             topics = js['no_threads']
             posters = {}
             no_posters = 0
@@ -191,7 +213,7 @@ def scan(KibbleBit, source):
                     sid = hashlib.sha1( ("%s%s" % (source['organisation'], sender)).encode('ascii', errors='replace')).hexdigest()
                     if KibbleBit.exists('person',sid):
                         knowns[sender] = True
-                if not sender in knowns:
+                if not sender in knowns or name != sender:
                     KibbleBit.append('person', 
                         {
                         'upsert': True,
@@ -201,6 +223,13 @@ def scan(KibbleBit, source):
                         'id' :hashlib.sha1( ("%s%s" % (source['organisation'], sender)).encode('ascii', errors='replace')).hexdigest()
                     })
                     knowns[sender] = True
+                replyTo = None
+                if email['id'] in replyList:
+                    rt = replyList[email['id']]
+                    for eml in js['emails']:
+                        if eml['id'] == rt:
+                            replyTo = getSender(eml)
+                            print("Email was reply to %s" % sender)
                 jse = {
                     'organisation': source['organisation'],
                     'sourceURL': source['sourceURL'],
@@ -208,6 +237,8 @@ def scan(KibbleBit, source):
                     'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(email['epoch'])),
                     'sender': sender,
                     'address': sender,
+                    'subject': email['subject'],
+                    'replyto': replyTo,
                     'ts': email['epoch'],
                     'id': email['id']
                 }

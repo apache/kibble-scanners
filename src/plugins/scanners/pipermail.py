@@ -89,12 +89,21 @@ def scan(KibbleBit, source):
                         posters = {}
                         no_posters = 0
                         emails = 0
+                        senders = {}
                         for message in messages:
                             emails += 1
                             sender = message['from']
                             name = sender
                             if not 'subject' in message or not message['subject'] or not 'from' in message or not message['from']:
                                 continue
+                            
+                            irt = message.get('in-reply-to', None)
+                            if not irt and message.get('references'):
+                                irt = message.get('references').split("\n")[0].strip()
+                            replyto = None
+                            if irt and irt in senders:
+                                replyto = senders[irt]
+                                print("This is a reply to %s" % replyto)
                             raw_subject = re.sub(r"^[a-zA-Z]+\s*:\s*", "", message['subject'], count=10)
                             raw_subject = re.sub(r"[\r\n\t]+", "", raw_subject, count=10)
                             if not raw_subject in rawtopics:
@@ -114,6 +123,7 @@ def scan(KibbleBit, source):
                                     'name': name,
                                     'email': sender
                                 }
+                            senders[message.get('message-id', "??")] = sender
                             mdate = email.utils.parsedate_tz(message['date'])
                             mdatestring = time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(email.utils.mktime_tz(mdate)))
                             if not sender in knowns:
@@ -134,6 +144,8 @@ def scan(KibbleBit, source):
                                 'sourceID': source['sourceID'],
                                 'date': mdatestring,
                                 'sender': sender,
+                                'replyto': replyto,
+                                'subject': message['subject'],
                                 'address': sender,
                                 'ts': email.utils.mktime_tz(mdate),
                                 'id': message['message-id']

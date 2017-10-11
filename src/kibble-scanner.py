@@ -94,6 +94,7 @@ class scanThread(threading.Thread):
                 if isMine(obj['sourceID'], self.broker.config):
                     # Run through list of scanners in order, apply when useful
                     for sid, scanner in plugins.scanners.enumerate():
+                        
                         if scanner.accepts(obj):
                             self.bit.pluginname = "plugins/scanners/" + sid
                             if not self.stype or self.stype == sid:
@@ -144,9 +145,13 @@ def main():
                                 tooNew = True
                                 break
                     if not tooNew:
-                        PENDING_OBJECTS.append(source)
+                        if not args.source or (args.source == source['sourceID']):
+                            PENDING_OBJECTS.append(source)
             else:
-                PENDING_OBJECTS = org.sources()
+                PENDING_OBJECTS = []
+                for source in org.sources():
+                    if not args.source or (args.source == source['sourceID']):
+                        PENDING_OBJECTS.append(source)
                 sourceNo += len(PENDING_OBJECTS)
             
             # Start up some threads equal to number of cores on the box,

@@ -103,10 +103,11 @@ def status_changed(stored_issue, issue):
     return stored_issue['status'] != issue['status']
 
 def update_issue(KibbleBit, issue):
-    KibbleBit.append('issue', issue['id'], issue)
+    KibbleBit.append('issue', issue)
 
 def update_person(KibbleBit, person):
-    KibbleBit.append('person', { 'doc': person, 'doc_as_upsert': True})
+    person['upsert'] = True
+    KibbleBit.append('person', person)
     
 
 def scan(KibbleBit, source):
@@ -117,7 +118,7 @@ def scan(KibbleBit, source):
         creds = source['creds']
         if creds and 'username' in creds:
             auth = (creds['username'], creds['password'])
-
+    print("Scanning for GitHub issues")
     try:
         issues = plugins.utils.github.get_all(source, plugins.utils.github.issues,
                                    params={'filter': 'all', 'state':'all'},
@@ -140,7 +141,6 @@ def scan(KibbleBit, source):
 
             doc = make_issue(source, issue, people)
             dhash = doc['id']
-
             stored_change = None
             if KibbleBit.exists('issue', dhash):
                 es_doc = KibbleBit.get('issue', dhash)

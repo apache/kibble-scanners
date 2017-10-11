@@ -78,6 +78,9 @@ class KibbleBit:
         
     def append(self, t, doc):
         """ Append a document to the bulk push queue """
+        if not 'id' in doc:
+            sys.stderr.write("No doc ID specified!\n")
+            return
         doc['doctype'] = t
         self.json_queue.append(doc)
         # If we've crossed the bulk limit, do a push
@@ -92,6 +95,12 @@ class KibbleBit:
         self.json_queue = []
         for entry in xjson:
             js = entry
+            doc = js
+            if js.get('upsert'):
+                doc = {
+                    'doc_as_upsert': True,
+                    'doc': js
+                }
             js['@version'] = 1
             js_arr.append({
                 '_op_type': 'index',
@@ -99,7 +108,7 @@ class KibbleBit:
                 '_index': self.broker.config['elasticsearch']['database'],
                 '_type': js['doctype'],
                 '_id': js['id'],
-                'doc': js,
+                'doc': doc,
                 '_source': js
             })
         try:
@@ -190,7 +199,7 @@ class Broker:
         # Run the search, fetch all orgs, 9999 max. TODO: Scroll???
         res = self.DB.search(
             index=self.config['elasticsearch']['database'],
-            doc_type="org",
+            doc_type="organisation",
             size = 9999,
             body = {
                 'query': {

@@ -41,6 +41,7 @@ def base_parser():
     arg_parser.add_argument("-s", "--source", help="A specific source (wildcard) to run scans on.")
     arg_parser.add_argument("-n", "--nodes", help="Number of nodes in the cluster (used for load balancing)")
     arg_parser.add_argument("-t", "--type", help="Specific type of scanner to run (default is run all scanners)")
+    arg_parser.add_argument("-v", "--view", help="Specific source view to scan (default is scan all sources)")
     return arg_parser
    
 def pprint(string, err = False):
@@ -137,7 +138,7 @@ def main():
             # N hours ago by any scanner.
             if args.age:
                 minAge = time.time() - int(args.age) * 3600
-                for source in org.sources():
+                for source in org.sources(view=args.view):
                     tooNew = False
                     if 'steps' in source:
                         for key, step in source['steps'].items():
@@ -149,7 +150,7 @@ def main():
                             PENDING_OBJECTS.append(source)
             else:
                 PENDING_OBJECTS = []
-                for source in org.sources():
+                for source in org.sources(view=args.view):
                     if not args.source or (args.source == source['sourceID']):
                         PENDING_OBJECTS.append(source)
                 sourceNo += len(PENDING_OBJECTS)

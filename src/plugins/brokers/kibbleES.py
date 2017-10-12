@@ -125,7 +125,7 @@ class KibbleOrganisation:
         self.broker = broker
         self.id = org
     
-    def sources(self, sourceType = None):
+    def sources(self, sourceType = None, view = None):
         """ Get all sources or sources of a specific type for an org """
         s = []
         # Search for all sources of this organisation
@@ -135,6 +135,18 @@ class KibbleOrganisation:
                         }
                     }
                     ]
+        if view:
+            res = self.broker.DB.get(
+                index=self.broker.config['elasticsearch']['database'],
+                doc_type="view",
+                id = view
+            )
+            if res:
+                mustArray.append({
+                                'terms': {
+                                    'sourceID': res['_source']['sourceList']
+                                }
+                            })
         # If we want a specific source type, amend the search criteria
         if sourceType:
             mustArray.append({

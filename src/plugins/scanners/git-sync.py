@@ -46,6 +46,7 @@ def scan(KibbletBit, source):
     if not os.path.exists(rootpath):
         try:
             os.makedirs(rootpath, exist_ok = True)
+            print("Created root path %s" % rootpath)
         except Exception as err:
             source['steps']['sync'] = {
                 'time': time.time(),

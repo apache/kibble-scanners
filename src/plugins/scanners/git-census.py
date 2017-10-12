@@ -111,7 +111,7 @@ def scan(KibbleBit, source):
                     if delete > 100000000:
                         delete = 0
                     if delete > 1000000 or insert > 1000000:
-                        KibbleBit.pprint("gigantic diff for %s (%s): \n%s" % (gpath, source['sourceURL'], diff))
+                        KibbleBit.pprint("gigantic diff for %s (%s), ignoring" % (gpath, source['sourceURL']))
                         pass
                 if not gname in idseries:
                     idseries[gname] = {}

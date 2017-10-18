@@ -61,10 +61,14 @@ def make_issue(source, issue, people):
     issue_closer = owner_email
     if 'closed_by' in issue:
         issue_closer = people[issue['closed_by']['login']]
-
+    # Is this an issue ro a pull request?
+    itype = "issue"
+    if 'pull_request' in issue:
+        itype = "pullrequest"
     return {
         'id': dhash,
         'key': key,
+        'issuetype': itype,
         'organisation': source['organisation'],
         'sourceID': source['sourceID'],
         'url': issue['html_url'],

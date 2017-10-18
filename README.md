@@ -30,6 +30,7 @@ The Kibble Scanners collect information for the Kibble Suite.
  - Git Code Evolution Counter (`plugins/scanners/git-evolution.py`)
  - Git SLoC Counter (`plugins/scanners/git-sloc.py`)
  - GitHub Issues/PRs (`plugins/scanners/github.py`)
+ - GitHub Traffic Statistics (`plugins/scanners/github-stats.py`)
  - GNU Mailman Pipermail (`plugins/scanners/pipermail.py`)
  
 

@@ -22,6 +22,8 @@ from json import loads
 
 repo_pattern = re.compile('.*[:/]([^/]+)/([^/]+).git')
 issues_api = "https://api.github.com/repos/%s/%s/issues"
+traffic_api = "https://api.github.com/repos/%s/%s/traffic"
+popular_api = "https://api.github.com/repos/%s/%s/popular"
 
 def issues(source, params={}, auth=None):
     local_params = {'per_page': 100, 'page': 1}
@@ -31,6 +33,27 @@ def issues(source, params={}, auth=None):
     resp = requests.get(issues_api % repo_user, params=local_params, auth=auth)
     resp.raise_for_status()
 
+    return resp.json()
+
+def views(source, auth=None):
+    repo_user = repo_pattern.findall(source['sourceURL'])[0]
+    resp = requests.get("%s/views" % (traffic_api % repo_user), auth=auth)
+    resp.raise_for_status()
+    
+    return resp.json()
+
+def clones(source, auth=None):
+    repo_user = repo_pattern.findall(source['sourceURL'])[0]
+    resp = requests.get("%s/clones" % (traffic_api % repo_user), auth=auth)
+    resp.raise_for_status()
+    
+    return resp.json()
+
+def referrers(source, auth=None):
+    repo_user = repo_pattern.findall(source['sourceURL'])[0]
+    resp = requests.get("%s/referrers" % (popular_api % repo_user), auth=auth)
+    resp.raise_for_status()
+    
     return resp.json()
 
 def user(user_url, auth=None):

@@ -34,4 +34,10 @@ The Kibble Scanners collect information for the Kibble Suite.
  - GNU Mailman Pipermail (`plugins/scanners/pipermail.py`)
  
 
+## Requirements:
 
+ - [cloc](https://github.com/AlDanial/cloc) version 1.70 or later
+ - git binaries
+ - python3 (3.3 or later)
+ - python3-elasticsearch 
+ - python3-dateutils

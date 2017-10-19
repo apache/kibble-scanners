@@ -41,3 +41,7 @@ The Kibble Scanners collect information for the Kibble Suite.
  - python3 (3.3 or later)
  - python3-elasticsearch 
  - python3-dateutils
+ 
+# Get involved
+  TBD. Please see https://kibble.apache.org/ for details!
+  

@@ -46,5 +46,7 @@ for p in __all__:
     print("[core]: Loaded plugins/scanners/%s v/%s (%s)" % (p, scanner.version, scanner.title))
 
 def enumerate():
-    """ Returns the scanners as a dictionary """
-    return scanners.items()
+    """ Returns the scanners as a dictionary, sorted by run-order """
+    for p in __all__:
+        yield (p, scanners[p])
+

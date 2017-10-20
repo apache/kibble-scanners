@@ -73,6 +73,7 @@ def make_issue(source, issue, people):
         'sourceID': source['sourceID'],
         'url': issue['html_url'],
         'status': issue['state'],
+        'labels': issue.get('labels', []),
         'created': format_date(issue['created_at'], epoch=True),
         'closed': format_date(closed_date, epoch=True),
         'issueCloser': issue_closer,

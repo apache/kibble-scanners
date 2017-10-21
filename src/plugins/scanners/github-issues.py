@@ -123,7 +123,7 @@ def scan(KibbleBit, source):
         creds = source['creds']
         if creds and 'username' in creds:
             auth = (creds['username'], creds['password'])
-    print("Scanning for GitHub issues")
+    KibbleBit.pprint("Scanning for GitHub issues")
     source['steps']['issues'] = {
             'time': time.time(),
             'status': 'Issue scan started at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),

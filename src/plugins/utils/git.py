@@ -34,10 +34,10 @@ def defaultBranch(source, datapath):
             try:
                 inp = subprocess.check_output("cd %s && git branch -a | awk -F ' +' '! /\(no branch\)/ {print $2}'" % datapath,  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').split()
                 if len(inp) > 0:
-                    for b in inp:
+                    for b in sorted(inp):
                         if b.find("detached") == -1:
                             branch = str(b.replace("remotes/origin/", "", 1))
-                            if branch == 'master':
+                            if branch == 'master' or branch == "trunk":
                                 break
             except:
                 branch = ""

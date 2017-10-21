@@ -124,6 +124,13 @@ def scan(KibbleBit, source):
         if creds and 'username' in creds:
             auth = (creds['username'], creds['password'])
     print("Scanning for GitHub issues")
+    source['steps']['issues'] = {
+            'time': time.time(),
+            'status': 'Issue scan started at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
+            'running': True,
+            'good': True,
+        }
+    KibbleBit.updateSource(source)
     try:
         issues = plugins.utils.github.get_all(source, plugins.utils.github.issues,
                                    params={'filter': 'all', 'state':'all'},
@@ -154,8 +161,22 @@ def scan(KibbleBit, source):
                     continue
 
             update_issue(KibbleBit, doc)
+        
+        source['steps']['issues'] = {
+            'time': time.time(),
+            'status': 'Issue scan completed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
+            'running': False,
+            'good': True,
+        }
+        KibbleBit.updateSource(source)
 
     except requests.HTTPError as e:
         # we've likely hit our GH API quota for the hour, so we re-try
         KibbleBit.pprint("HTTP Error, rate limit exceeded?")
-        time.sleep(3600)
+        source['steps']['issues'] = {
+            'time': time.time(),
+            'status': 'Issue scan failed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime() + " - rate limited??"),
+            'running': False,
+            'good': False,
+        }
+        KibbleBit.updateSource(source)

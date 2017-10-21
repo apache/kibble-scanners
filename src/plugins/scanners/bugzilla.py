@@ -256,7 +256,8 @@ class bzThread(Thread):
         badOnes = 0
         
         while len(self.pendingTickets) > 0 and badOnes <= 50:
-            self.KibbleBit.pprint("%u elements left to count" % len(self.pendingTickets))
+            if len(self.pendingTickets) % 10 == 0:
+                self.KibbleBit.pprint("%u elements left to count" % len(self.pendingTickets))
             self.block.acquire()
             try:
                 rl = self.pendingTickets.pop(0)

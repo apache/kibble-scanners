@@ -85,15 +85,14 @@ def checkout(gpath, date, branch):
         ref = subprocess.check_output('cd %s && git rev-list -n 1 --before="%s" "%s"' %
                                       (gpath, date, branch),
                                       shell = True,
-                                      stderr=subprocess.DEVNULL).decode('ascii',
+                                      stdout=subprocess.DEVNULL).decode('ascii',
                                                                         'replace').strip()
-        subprocess.call('cd %s && git checkout %s -- ' % (gpath, ref),
+        subprocess.check_output('cd %s && git checkout %s -- ' % (gpath, ref),
                         shell = True,
-                        stderr=subprocess.DEVNULL,
                         stdout=subprocess.DEVNULL)
-    except:
-        #print("borked!")
-        pass
+    except subprocess.CalledProcessError as err:
+        print(err.output)
+
 
 
 def find_branch(date, gpath):
@@ -173,7 +172,7 @@ def scan(KibbleBit, source):
                                                                         'replace')).hexdigest()
                     found = KibbleBit.exists('evolution', dhash)
                     if not found:
-                        checkout(gname, date, branch)
+                        checkout(gpath, date, branch)
                         KibbleBit.pprint("Running cloc on %s (%s) at %s" % (gname, source['sourceURL'], date))
                         languages, codecount, comment, blank, years, cost = plugins.utils.sloc.count(gpath)
                         js = {

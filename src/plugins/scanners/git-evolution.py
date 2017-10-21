@@ -20,6 +20,7 @@ import os
 import subprocess
 import re
 import time
+import calendar
 import datetime
 import plugins.utils.git
 import plugins.utils.sloc
@@ -165,7 +166,7 @@ def scan(KibbleBit, source):
                 while now > ts:
                     pd = datetime.datetime(year, quarter, 1).replace(tzinfo=datetime.timezone.utc).timetuple()
                     date = time.strftime("%Y-%b-%d 0:00", pd)
-                    unix = time.mktime(pd)
+                    unix =  calendar.timegm(pd)
     
                     # Skip the dates we've already processed
                     dhash = hashlib.sha224((source['sourceID'] + date).encode('ascii',

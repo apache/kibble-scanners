@@ -39,7 +39,7 @@ class KibbleBit:
         self.organisation = organisation
         self.broker = broker
         self.json_queue = []
-        self.queueMax = 250 # Entries to keep before bulk pushing
+        self.queueMax = 1000 # Entries to keep before bulk pushing
         self.pluginname = ""
         self.tid = tid
     

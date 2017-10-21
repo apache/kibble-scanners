@@ -85,11 +85,11 @@ def checkout(gpath, date, branch):
         ref = subprocess.check_output('cd %s && git rev-list -n 1 --before="%s" "%s"' %
                                       (gpath, date, branch),
                                       shell = True,
-                                      stdout=subprocess.DEVNULL).decode('ascii',
+                                      stderr=subprocess.STDOUT).decode('ascii',
                                                                         'replace').strip()
         subprocess.check_output('cd %s && git checkout %s -- ' % (gpath, ref),
                         shell = True,
-                        stdout=subprocess.DEVNULL)
+                        stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as err:
         print(err.output)
 

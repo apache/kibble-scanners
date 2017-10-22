@@ -160,9 +160,10 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
                     'name': displayName,
                     'email': closerEmail,
                     'organisation': source['organisation'],
-                    'id' :pid
+                    'id' :pid,
+                    'upsert': True
                 }
-                KibbleBit.index('person', pid, { 'doc': jsp, 'doc_as_upsert': True})
+                KibbleBit.append('person', jsp)
             
         if creator:
             creator = creator.replace(" dot ", ".", 10).replace(" at ", "@", 1)
@@ -174,9 +175,10 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
                     'name': displayName,
                     'email': creator,
                     'organisation': source['organisation'],
-                    'id' :pid
+                    'id' :pid,
+                    'upsert': True
                 }
-                KibbleBit.index('person', pid, { 'doc': jsp, 'doc_as_upsert': True})
+                KibbleBit.append('person', jsp)
             
         jso = {
             'id': dhash,

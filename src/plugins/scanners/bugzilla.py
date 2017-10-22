@@ -222,6 +222,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                 'status': status,
                 'created': cd,
                 'closed': rd,
+                'issuetype': 'issue',
                 'issueCloser': closer['email'] if 'email' in closer else None, 
                 'createdDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(cd)),
                 'closedDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(rd)) if rd else None,

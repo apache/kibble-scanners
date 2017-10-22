@@ -189,6 +189,7 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             'status': status,
             'created': cd,
             'closed': rd,
+            'issuetype': 'issue',
             'issueCloser': closerEmail, 
             'createdDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(cd)),
             'closedDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(rd)) if rd else None,

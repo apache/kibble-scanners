@@ -107,8 +107,8 @@ class KibbleBit:
                 '_index': self.broker.config['elasticsearch']['database'],
                 '_type': js['doctype'],
                 '_id': js['id'],
-                'doc': doc,
-                '_source': js
+                'doc' if js.get('upsert') else '_source': doc,
+                'doc_as_upsert': True,
             })
         try:
             elasticsearch.helpers.bulk(self.broker.DB, js_arr)

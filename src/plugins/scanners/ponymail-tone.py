@@ -95,7 +95,7 @@ def scan(KibbleBit, source):
         rv = requests.get(emlurl).json()
         body = rv['body']
         KibbleBit.pprint("analyzing email")
-        if 'mood' not in eml:
+        if 'mood' not in eml and not re.search(ROBITS, eml['sender']):
             mood = plugins.utils.tone.getTone(KibbleBit, body)
             eml['mood'] = mood
             hm = [0,'unknown']

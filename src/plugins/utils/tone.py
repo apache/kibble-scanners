@@ -52,7 +52,10 @@ def getTone(KibbleBit, body):
         )
         mood = {}
         jsout = rv.json()
-        for tone in jsout['document_tone']['tones']:
-            mood[tone['tone_id']] = tone['score']
+        if 'document_tone' in jsout:
+            for tone in jsout['document_tone']['tones']:
+                mood[tone['tone_id']] = tone['score']
+        else:
+            KibbleBit.pprint("Failed to analyze email body.")
         return mood
 

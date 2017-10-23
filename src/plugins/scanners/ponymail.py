@@ -240,7 +240,8 @@ def scan(KibbleBit, source):
                     'subject': email['subject'],
                     'replyto': replyTo,
                     'ts': email['epoch'],
-                    'id': email['id']
+                    'id': email['id'],
+                    'upsert': True
                 }
                 KibbleBit.append('email', jse)
             for sender in posters:

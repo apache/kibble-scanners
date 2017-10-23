@@ -100,14 +100,9 @@ class KibbleBit:
         for entry in xjson:
             js = entry
             doc = js
-            if js.get('upsert'):
-                doc = {
-                    'doc_as_upsert': True,
-                    'doc': js
-                }
             js['@version'] = 1
             js_arr.append({
-                '_op_type': 'index',
+                '_op_type': 'update' if js.get('upsert') else 'index',
                 '_consistency': 'quorum',
                 '_index': self.broker.config['elasticsearch']['database'],
                 '_type': js['doctype'],

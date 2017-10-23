@@ -90,12 +90,12 @@ def scan(KibbleBit, source):
     
     for hit in res['hits']['hits']:
         eml = hit['_source']
-        emlurl = "%s/api/email.lua?id=%s" % (rootURL, eml['id'])
-        KibbleBit.pprint("Fetching %s" % emlurl)
-        rv = requests.get(emlurl).json()
-        body = rv['body']
-        KibbleBit.pprint("analyzing email")
         if 'mood' not in eml and not re.search(ROBITS, eml['sender']):
+            emlurl = "%s/api/email.lua?id=%s" % (rootURL, eml['id'])
+            KibbleBit.pprint("Fetching %s" % emlurl)
+            rv = requests.get(emlurl).json()
+            body = rv['body']
+            KibbleBit.pprint("analyzing email")
             mood = plugins.utils.tone.getTone(KibbleBit, body)
             eml['mood'] = mood
             hm = [0,'unknown']

@@ -42,6 +42,12 @@ The Kibble Scanners collect information for the Kibble Suite.
  - python3-elasticsearch 
  - python3-dateutils
  
+### Multi-threaded CLoC counter
+ To speed up things, you can use the multi-threaded version of cloc
+ found at [this location](https://raw.githubusercontent.com/stsnel/cloc/multithread/cloc).
+ On machines with many cores, you may experience a tenfold speed increase in
+ the SLoC and evolution scans.
+ 
 # Get involved
   TBD. Please see https://kibble.apache.org/ for details!
   

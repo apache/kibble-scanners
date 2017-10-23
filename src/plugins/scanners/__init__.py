@@ -30,6 +30,7 @@ __all__ = [
     'git-evolution',
     'jira',
     'ponymail',
+    'ponymail-tone',
     'pipermail',
     'github-issues',
     'bugzilla',

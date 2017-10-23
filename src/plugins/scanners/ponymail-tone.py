@@ -31,6 +31,7 @@ import plugins.utils.tone
 title = "Tone/Mood Scanner plugin for Apache Pony Mail"
 version = "0.1.0"
 ROBITS = r"(git|gerrit|jenkins|hudson|builds)@"
+MAX_COUNT = 50
 
 def accepts(source):
     """ Test if source matches a Pony Mail archive """
@@ -85,12 +86,15 @@ def scan(KibbleBit, source):
         index=KibbleBit.dbname,
         doc_type="email",
         body = query,
-        size = 50
+        size = 500
     )
-    
+    ec = 0
     for hit in res['hits']['hits']:
         eml = hit['_source']
         if 'mood' not in eml and not re.search(ROBITS, eml['sender']):
+            ec += 1
+            if ec > MAX_COUNT:
+                break
             emlurl = "%s/api/email.lua?id=%s" % (rootURL, eml['id'])
             KibbleBit.pprint("Fetching %s" % emlurl)
             rv = requests.get(emlurl).json()

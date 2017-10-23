@@ -41,6 +41,11 @@ def getTone(KibbleBit, body):
         headers = {
             'Content-Type': 'application/json'
         }
+        
+        # Crop out quotes
+        lines = body.split("\n")
+        body = "\n".join([x for x in lines if not x.startswith(">")])
+        
         js = {
             'text': body
         }

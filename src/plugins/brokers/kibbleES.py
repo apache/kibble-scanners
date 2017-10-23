@@ -42,10 +42,12 @@ class KibbleBit:
         self.queueMax = 1000 # Entries to keep before bulk pushing
         self.pluginname = ""
         self.tid = tid
+        self.dbname = self.broker.config['elasticsearch']['database']
     
     def __del__(self):
         """ On unload/delete, push the last chunks of data to ES """
         if self.json_queue:
+            print("Pushing stragglers")
             self.bulk()
             
     def pprint(self,  string, err = False):

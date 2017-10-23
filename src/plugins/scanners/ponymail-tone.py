@@ -91,21 +91,22 @@ def scan(KibbleBit, source):
     ec = 0
     for hit in res['hits']['hits']:
         eml = hit['_source']
-        if 'mood' not in eml and not re.search(ROBITS, eml['sender']):
+        if not re.search(ROBITS, eml['sender']):
             ec += 1
             if ec > MAX_COUNT:
                 break
-            emlurl = "%s/api/email.lua?id=%s" % (rootURL, eml['id'])
-            KibbleBit.pprint("Fetching %s" % emlurl)
-            rv = requests.get(emlurl).json()
-            body = rv['body']
-            KibbleBit.pprint("analyzing email")
-            mood = plugins.utils.tone.getTone(KibbleBit, body)
-            eml['mood'] = mood
-            hm = [0,'unknown']
-            for m, s in mood.items():
-                if s > hm[0]:
-                    hm = [s,m]
-            print("Likeliest overall mood: %s" % hm[1])
-            KibbleBit.index('email', hit['_id'], eml)
+            if 'mood' not in eml:
+                emlurl = "%s/api/email.lua?id=%s" % (rootURL, eml['id'])
+                KibbleBit.pprint("Fetching %s" % emlurl)
+                rv = requests.get(emlurl).json()
+                body = rv['body']
+                KibbleBit.pprint("analyzing email")
+                mood = plugins.utils.tone.getTone(KibbleBit, body)
+                eml['mood'] = mood
+                hm = [0,'unknown']
+                for m, s in mood.items():
+                    if s > hm[0]:
+                        hm = [s,m]
+                print("Likeliest overall mood: %s" % hm[1])
+                KibbleBit.index('email', hit['_id'], eml)
     KibbleBit.pprint("Done with tone analysis")

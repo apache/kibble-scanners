@@ -22,6 +22,7 @@ import json
 import hashlib
 import plugins.utils.jsonapi
 import threading
+import requests.exceptions
 
 """
 This is the Kibble JIRA scanner plugin.

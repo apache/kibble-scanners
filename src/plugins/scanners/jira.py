@@ -131,9 +131,13 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
         KibbleBit.pprint("[%s] Parsing data from JIRA..." % key)
         queryURL = "%s/rest/api/2/issue/%s?fields=creator,reporter,status,issuetype,summary,assignee,resolutiondate,created,priority,changelog,comment,resolution,votes&expand=changelog" % (u, key)
         jiraURL = "%s/browse/%s" % (u, key)
-        tjson = plugins.utils.jsonapi.get(queryURL, auth = creds)
-        if not tjson:
-            KibbleBit.pprint("%s does not exist (404'ed)" % key)
+        try:
+            tjson = plugins.utils.jsonapi.get(queryURL, auth = creds)
+            if not tjson:
+                KibbleBit.pprint("%s does not exist (404'ed)" % key)
+                return False
+        except requests.exceptions.ConnectionError as err:
+            KibbleBit.pprint("Connection error, skipping this ticket for now!")
             return False
         st, closer = wasclosed(tjson)
         if st and not closer:

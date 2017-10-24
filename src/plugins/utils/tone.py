@@ -49,14 +49,17 @@ def getTone(KibbleBit, body):
         js = {
             'text': body
         }
-        rv = requests.post(
-            "%s/v3/tone?version=2017-09-21&sentences=false" % KibbleBit.config['watson']['api'],
-            headers = headers,
-            data = json.dumps(js),
-            auth = (KibbleBit.config['watson']['username'], KibbleBit.config['watson']['password'])
-        )
-        mood = {}
-        jsout = rv.json()
+        try:
+            rv = requests.post(
+                "%s/v3/tone?version=2017-09-21&sentences=false" % KibbleBit.config['watson']['api'],
+                headers = headers,
+                data = json.dumps(js),
+                auth = (KibbleBit.config['watson']['username'], KibbleBit.config['watson']['password'])
+            )
+            mood = {}
+            jsout = rv.json()
+        except:
+            jsout = {} # borked Watson?
         if 'document_tone' in jsout:
             for tone in jsout['document_tone']['tones']:
                 mood[tone['tone_id']] = tone['score']

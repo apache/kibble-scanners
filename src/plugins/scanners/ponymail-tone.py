@@ -30,7 +30,7 @@ import plugins.utils.tone
 
 title = "Tone/Mood Scanner plugin for Apache Pony Mail"
 version = "0.1.0"
-ROBITS = r"(git|gerrit|jenkins|hudson|builds)@"
+ROBITS = r"(git|gerrit|jenkins|hudson|builds|bugzilla)@"
 MAX_COUNT = 50
 
 def accepts(source):

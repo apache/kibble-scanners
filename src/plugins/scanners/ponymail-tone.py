@@ -65,6 +65,10 @@ def scan(KibbleBit, source):
         KibbleBit.pprint("No Watson/BlueMix creds configured, skipping tone analyzer")
         return
     
+    cookie = None
+    if 'creds' in source and source['creds']:
+        cookie = source['creds'].get('cookie', None)
+        
     rootURL = re.sub(r"list.html.+", "", source['sourceURL'])
     query = {
             'query': {
@@ -98,15 +102,20 @@ def scan(KibbleBit, source):
             if 'mood' not in eml:
                 emlurl = "%s/api/email.lua?id=%s" % (rootURL, eml['id'])
                 KibbleBit.pprint("Fetching %s" % emlurl)
-                rv = requests.get(emlurl).json()
-                body = rv['body']
-                KibbleBit.pprint("analyzing email")
-                mood = plugins.utils.tone.getTone(KibbleBit, body)
-                eml['mood'] = mood
-                hm = [0,'unknown']
-                for m, s in mood.items():
-                    if s > hm[0]:
-                        hm = [s,m]
-                print("Likeliest overall mood: %s" % hm[1])
-                KibbleBit.index('email', hit['_id'], eml)
+                rv = None
+                try:
+                    rv = plugins.utils.jsonapi.get(emlurl, cookie = cookie)
+                except Exception as err:
+                    KibbleBit.pprint("Server error, skipping this email")
+                if rv and 'body' in rv:
+                    body = rv['body']
+                    KibbleBit.pprint("analyzing email")
+                    mood = plugins.utils.tone.getTone(KibbleBit, body)
+                    eml['mood'] = mood
+                    hm = [0,'unknown']
+                    for m, s in mood.items():
+                        if s > hm[0]:
+                            hm = [s,m]
+                    print("Likeliest overall mood: %s" % hm[1])
+                    KibbleBit.index('email', hit['_id'], eml)
     KibbleBit.pprint("Done with tone analysis")

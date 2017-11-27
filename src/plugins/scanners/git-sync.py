@@ -101,7 +101,7 @@ def scan(KibbletBit, source):
                 except subprocess.CalledProcessError as err:
                     e = str(err.output).lower()
                     # We're interested in merge conflicts, which we can resolve through trickery.
-                    if n > 0 or not ('resolve' in e or 'merge' in e):
+                    if n > 0 or not ('resolve' in e or 'merge' in e or 'overwritten' in e):
                         # This isn't a merge conflict, pass it to outer func
                         raise err
                     else:

@@ -35,8 +35,10 @@ import json
 import hashlib
 import requests
 import json
+import uuid
 
-def getTone(KibbleBit, body):
+def watsonTone(KibbleBit, body):
+    """ Sentiment analysis using IBM Watson """
     if 'watson' in KibbleBit.config:
         headers = {
             'Content-Type': 'application/json'
@@ -56,10 +58,10 @@ def getTone(KibbleBit, body):
                 data = json.dumps(js),
                 auth = (KibbleBit.config['watson']['username'], KibbleBit.config['watson']['password'])
             )
-            mood = {}
             jsout = rv.json()
         except:
             jsout = {} # borked Watson?
+        mood = {}
         if 'document_tone' in jsout:
             for tone in jsout['document_tone']['tones']:
                 mood[tone['tone_id']] = tone['score']
@@ -67,3 +69,47 @@ def getTone(KibbleBit, body):
             KibbleBit.pprint("Failed to analyze email body.")
         return mood
 
+def azureTone(KibbleBit, body):
+    """ Sentiment analysis using Azure Text Analysis API """
+    if 'azure' in KibbleBit.config:
+        headers = {
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': KibbleBit.config['azure']['apikey']
+        }
+        
+        # Crop out quotes
+        lines = body.split("\n")
+        body = "\n".join([x for x in lines if not x.startswith(">")])
+        js = {
+            "documents": [
+              {
+                "language": "en",
+                "id": uuid.uuid4(),
+                "text": body
+              }
+            ]
+          }
+        try:
+            rv = requests.post(
+                "https://%s.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment" % KibbleBit.config['azure']['location'],
+                headers = headers,
+                data = json.dumps(js)
+            )
+            jsout = rv.json()
+        except:
+            jsout = {} # borked sentiment analysis?
+        mood = {}
+        if 'documents' in jsout:
+            # This is more parred than Watson, so we'll split it into three groups: positive, neutral and negative.
+            # Divide into four segments, 0->40%, 25->75% and 60->100%.
+            # 0-40 promotes negative, 60-100 promotes positive, and 25-75% promotes neutral.
+            # As we don't want to over-represent negative/positive where the results are
+            # muddy, the neutral zone is larger than the positive/negative zones by 10%.
+            val = jsout['documents'][0]['score']
+            mood['negative'] = max(0, ((0.4 - val) * 2.5)) # For 40% and below, use 2½ distance
+            mood['positive'] = max(0, ((val-0.6) * 2.5)) # For 60% and above, use 2½ distance
+            mood['neutral'] = max(0, 1 - (abs(val - 0.5) * 2)) # Between 25% and 75% use double the distance to middle.
+        else:
+            KibbleBit.pprint("Failed to analyze email body.")
+        return mood
+    

@@ -61,8 +61,9 @@ def scan(KibbleBit, source):
         }
         KibbleBit.updateSource(source)
         return
-    if not 'watson' in KibbleBit.config:
-        KibbleBit.pprint("No Watson/BlueMix creds configured, skipping tone analyzer")
+    
+    if not 'watson' in KibbleBit.config and not 'azure' in KibbleBit.config:
+        KibbleBit.pprint("No Watson/Azure creds configured, skipping tone analyzer")
         return
     
     cookie = None
@@ -90,7 +91,7 @@ def scan(KibbleBit, source):
         index=KibbleBit.dbname,
         doc_type="email",
         body = query,
-        size = 500
+        size = 1
     )
     ec = 0
     for hit in res['hits']['hits']:
@@ -110,7 +111,10 @@ def scan(KibbleBit, source):
                 if rv and 'body' in rv:
                     body = rv['body']
                     KibbleBit.pprint("analyzing email")
-                    mood = plugins.utils.tone.getTone(KibbleBit, body)
+                    if 'watson' in KibbleBit.config:
+                        mood = plugins.utils.tone.watsonTone(KibbleBit, body)
+                    elif 'azure' in KibbleBit.config:
+                        mood = plugins.utils.tone.azureTone(KibbleBit, body)
                     eml['mood'] = mood
                     hm = [0,'unknown']
                     for m, s in mood.items():

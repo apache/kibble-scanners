@@ -122,3 +122,11 @@ def scan(KibbleBit, source):
     # Start by getting and saving followers
     getFollowers(KibbleBit, source, t)
     
+    # All done, report that!
+    source['steps']['twitter'] = {
+        'time': time.time(),
+        'status': 'Twitter successfully scanned at ' + time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(time.time())),
+        'running': False,
+        'good': True
+    }
+    KibbleBit.updateSource(source)

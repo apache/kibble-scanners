@@ -120,7 +120,17 @@ def scan(KibbleBit, source):
             KibbleBit.pprint("Could not verify twitter creds, aborting!")
             return
     # Start by getting and saving followers
-    getFollowers(KibbleBit, source, t)
+    try:
+        getFollowers(KibbleBit, source, t)
+    except Exception as err:
+        source['steps']['twitter'] = {
+            'time': time.time(),
+            'status': 'Could not scan Twitter: %s' % err,
+            'running': False,
+            'good': False
+        }
+        KibbleBit.updateSource(source)
+        KibbleBit.pprint("Twitter scan failed: %s" % err)
     
     # All done, report that!
     source['steps']['twitter'] = {

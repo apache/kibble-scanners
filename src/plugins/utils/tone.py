@@ -37,7 +37,7 @@ import requests
 import json
 import uuid
 
-def watsonTone(KibbleBit, body):
+def watsonTone(KibbleBit, bodies):
     """ Sentiment analysis using IBM Watson """
     if 'watson' in KibbleBit.config:
         headers = {
@@ -45,31 +45,33 @@ def watsonTone(KibbleBit, body):
         }
         
         # Crop out quotes
-        lines = body.split("\n")
-        body = "\n".join([x for x in lines if not x.startswith(">")])
-        
-        js = {
-            'text': body
-        }
-        try:
-            rv = requests.post(
-                "%s/v3/tone?version=2017-09-21&sentences=false" % KibbleBit.config['watson']['api'],
-                headers = headers,
-                data = json.dumps(js),
-                auth = (KibbleBit.config['watson']['username'], KibbleBit.config['watson']['password'])
-            )
-            jsout = rv.json()
-        except:
-            jsout = {} # borked Watson?
-        mood = {}
-        if 'document_tone' in jsout:
-            for tone in jsout['document_tone']['tones']:
-                mood[tone['tone_id']] = tone['score']
-        else:
-            KibbleBit.pprint("Failed to analyze email body.")
-        return mood
+        for body in bodies:
+            lines = body.split("\n")
+            body = "\n".join([x for x in lines if not x.startswith(">")])
+            
+            js = {
+                'text': body
+            }
+            try:
+                rv = requests.post(
+                    "%s/v3/tone?version=2017-09-21&sentences=false" % KibbleBit.config['watson']['api'],
+                    headers = headers,
+                    data = json.dumps(js),
+                    auth = (KibbleBit.config['watson']['username'], KibbleBit.config['watson']['password'])
+                )
+                jsout = rv.json()
+            except:
+                jsout = {} # borked Watson?
+            mood = {}
+            if 'document_tone' in jsout:
+                for tone in jsout['document_tone']['tones']:
+                    mood[tone['tone_id']] = tone['score']
+            else:
+                KibbleBit.pprint("Failed to analyze email body.")
+            yield mood
 
-def azureTone(KibbleBit, body):
+
+def azureTone(KibbleBit, bodies):
     """ Sentiment analysis using Azure Text Analysis API """
     if 'azure' in KibbleBit.config:
         headers = {
@@ -77,18 +79,26 @@ def azureTone(KibbleBit, body):
             'Ocp-Apim-Subscription-Key': KibbleBit.config['azure']['apikey']
         }
         
-        # Crop out quotes
-        lines = body.split("\n")
-        body = "\n".join([x for x in lines if not x.startswith(">")])
+        
         js = {
-            "documents": [
-              {
+            "documents": []
+          }
+        
+        # For each body...
+        a = 0
+        moods = []
+        for body in bodies:
+            # Crop out quotes
+            lines = body.split("\n")
+            body = "\n".join([x for x in lines if not x.startswith(">")])
+            doc = {
                 "language": "en",
-                "id": str(uuid.uuid4()),
+                "id": str(a),
                 "text": body
               }
-            ]
-          }
+            js['documents'].append(doc)
+            moods.append({}) # placeholder for each doc, to be replaced
+            a += 1
         try:
             rv = requests.post(
                 "https://%s.api.cognitive.microsoft.com/text/analytics/v2.0/sentiment" % KibbleBit.config['azure']['location'],
@@ -98,24 +108,29 @@ def azureTone(KibbleBit, body):
             jsout = rv.json()
         except:
             jsout = {} # borked sentiment analysis?
-        mood = {}
+        
         if 'documents' in jsout and len(jsout['documents']) > 0:
-            # This is more parred than Watson, so we'll split it into three groups: positive, neutral and negative.
-            # Divide into four segments, 0->40%, 25->75% and 60->100%.
-            # 0-40 promotes negative, 60-100 promotes positive, and 25-75% promotes neutral.
-            # As we don't want to over-represent negative/positive where the results are
-            # muddy, the neutral zone is larger than the positive/negative zones by 10%.
-            val = jsout['documents'][0]['score']
-            mood['negative'] = max(0, ((0.4 - val) * 2.5)) # For 40% and below, use 2½ distance
-            mood['positive'] = max(0, ((val-0.6) * 2.5)) # For 60% and above, use 2½ distance
-            mood['neutral'] = max(0, 1 - (abs(val - 0.5) * 2)) # Between 25% and 75% use double the distance to middle.
+            for doc in jsout['documents']:
+                mood = {}
+                # This is more parred than Watson, so we'll split it into three groups: positive, neutral and negative.
+                # Divide into four segments, 0->40%, 25->75% and 60->100%.
+                # 0-40 promotes negative, 60-100 promotes positive, and 25-75% promotes neutral.
+                # As we don't want to over-represent negative/positive where the results are
+                # muddy, the neutral zone is larger than the positive/negative zones by 10%.
+                val = doc['score']
+                mood['negative'] = max(0, ((0.4 - val) * 2.5)) # For 40% and below, use 2½ distance
+                mood['positive'] = max(0, ((val-0.6) * 2.5)) # For 60% and above, use 2½ distance
+                mood['neutral'] = max(0, 1 - (abs(val - 0.5) * 2)) # Between 25% and 75% use double the distance to middle.
+                moods[int(doc['id'])] = mood # Replace moods[X] with the actual mood
+                
         else:
             KibbleBit.pprint("Failed to analyze email body.")
+            print(jsout)
             # Depending on price tier, Azure will return a 429 if you go too fast.
             # If we see a statusCode return, let's just stop for now.
             # Later scans can pick up the slack.
             if 'statusCode' in jsout:
                 KibbleBit.pprint("Possible rate limiting in place, stopping for now.")
                 return False
-        return mood
+        return moods
     

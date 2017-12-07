@@ -84,7 +84,7 @@ def azureTone(KibbleBit, body):
             "documents": [
               {
                 "language": "en",
-                "id": uuid.uuid4(),
+                "id": str(uuid.uuid4()),
                 "text": body
               }
             ]

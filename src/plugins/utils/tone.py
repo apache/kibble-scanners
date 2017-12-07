@@ -99,7 +99,7 @@ def azureTone(KibbleBit, body):
         except:
             jsout = {} # borked sentiment analysis?
         mood = {}
-        if 'documents' in jsout:
+        if 'documents' in jsout and len(jsout['documents']) > 0:
             # This is more parred than Watson, so we'll split it into three groups: positive, neutral and negative.
             # Divide into four segments, 0->40%, 25->75% and 60->100%.
             # 0-40 promotes negative, 60-100 promotes positive, and 25-75% promotes neutral.

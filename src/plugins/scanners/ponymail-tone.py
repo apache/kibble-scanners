@@ -94,6 +94,7 @@ def scan(KibbleBit, source):
         size = 1
     )
     ec = 0
+    hits = []
     for hit in res['hits']['hits']:
         eml = hit['_source']
         if not re.search(ROBITS, eml['sender']):
@@ -106,23 +107,37 @@ def scan(KibbleBit, source):
                 rv = None
                 try:
                     rv = plugins.utils.jsonapi.get(emlurl, cookie = cookie)
+                    if rv and 'body' in rv:
+                        hits.append([hit['_id'],rv['body'], eml])
                 except Exception as err:
                     KibbleBit.pprint("Server error, skipping this email")
-                if rv and 'body' in rv:
-                    body = rv['body']
-                    KibbleBit.pprint("analyzing email")
-                    if 'watson' in KibbleBit.config:
-                        mood = plugins.utils.tone.watsonTone(KibbleBit, body)
-                    elif 'azure' in KibbleBit.config:
-                        mood = plugins.utils.tone.azureTone(KibbleBit, body)
-                        if mood == False:
-                            KibbleBit.pprint("Hit Azure rate limit, not trying further emails for now.")
-                            break
-                    eml['mood'] = mood
-                    hm = [0,'unknown']
-                    for m, s in mood.items():
-                        if s > hm[0]:
-                            hm = [s,m]
-                    print("Likeliest overall mood: %s" % hm[1])
-                    KibbleBit.index('email', hit['_id'], eml)
+        
+    bodies = []            
+    for hit in hits:
+        body = hit[1]
+        bid = hit[0]
+        bodies.append(body)
+    if bodies:
+        if 'watson' in KibbleBit.config:
+            moods = plugins.utils.tone.watsonTone(KibbleBit, bodies)
+        elif 'azure' in KibbleBit.config:
+            moods = plugins.utils.tone.azureTone(KibbleBit, bodies)
+        if moods == False:
+            KibbleBit.pprint("Hit rate limit, not trying further emails for now.")
+            
+        a = 0
+        for hit in hits:
+            mood = moods[a]
+            bid = hit[0]
+            eml = hit[2]
+            a += 1
+            eml['mood'] = mood
+            hm = [0,'unknown']
+            for m, s in mood.items():
+                if s > hm[0]:
+                    hm = [s,m]
+            print("Likeliest overall mood for %s: %s" % (bid, hm[1]))
+            KibbleBit.index('email', bid, eml)
+    else:
+        KibbleBit.pprint("No emails to analyze")
     KibbleBit.pprint("Done with tone analysis")

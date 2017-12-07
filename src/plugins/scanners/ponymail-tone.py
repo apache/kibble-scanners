@@ -91,7 +91,7 @@ def scan(KibbleBit, source):
         index=KibbleBit.dbname,
         doc_type="email",
         body = query,
-        size = 1
+        size = 100
     )
     ec = 0
     hits = []

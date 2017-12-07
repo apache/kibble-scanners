@@ -111,5 +111,11 @@ def azureTone(KibbleBit, body):
             mood['neutral'] = max(0, 1 - (abs(val - 0.5) * 2)) # Between 25% and 75% use double the distance to middle.
         else:
             KibbleBit.pprint("Failed to analyze email body.")
+            # Depending on price tier, Azure will return a 429 if you go too fast.
+            # If we see a statusCode return, let's just stop for now.
+            # Later scans can pick up the slack.
+            if 'statusCode' in jsout:
+                KibbleBit.pprint("Possible rate limiting in place, stopping for now.")
+                return False
         return mood
     

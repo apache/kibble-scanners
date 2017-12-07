@@ -115,6 +115,9 @@ def scan(KibbleBit, source):
                         mood = plugins.utils.tone.watsonTone(KibbleBit, body)
                     elif 'azure' in KibbleBit.config:
                         mood = plugins.utils.tone.azureTone(KibbleBit, body)
+                        if mood == False:
+                            KibbleBit.pprint("Hit Azure rate limit, not trying further emails for now.")
+                            break
                     eml['mood'] = mood
                     hm = [0,'unknown']
                     for m, s in mood.items():

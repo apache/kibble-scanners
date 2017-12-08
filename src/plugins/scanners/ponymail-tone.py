@@ -62,8 +62,8 @@ def scan(KibbleBit, source):
         KibbleBit.updateSource(source)
         return
     
-    if not 'watson' in KibbleBit.config and not 'azure' in KibbleBit.config:
-        KibbleBit.pprint("No Watson/Azure creds configured, skipping tone analyzer")
+    if not 'watson' in KibbleBit.config and not 'azure' in KibbleBit.config and not 'picoapi' in KibbleBit.config:
+        KibbleBit.pprint("No Watson/Azure/picoAPI creds configured, skipping tone analyzer")
         return
     
     cookie = None
@@ -122,6 +122,8 @@ def scan(KibbleBit, source):
             moods = plugins.utils.tone.watsonTone(KibbleBit, bodies)
         elif 'azure' in KibbleBit.config:
             moods = plugins.utils.tone.azureTone(KibbleBit, bodies)
+        elif 'picoapi' in KibbleBit.config:
+            moods = plugins.utils.tone.picoTone(KibbleBit, bodies)
         if moods == False:
             KibbleBit.pprint("Hit rate limit, not trying further emails for now.")
             

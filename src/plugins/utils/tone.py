@@ -174,16 +174,13 @@ def picoTone(KibbleBit, bodies):
         if 'results' in jsout and len(jsout['results']) > 0:
             for doc in jsout['results']:
                 mood = {}
-                # This is more parred than Watson, so we'll split it into three groups: positive, neutral and negative.
-                # Divide into four segments, 0->40%, 25->75% and 60->100%.
-                # 0-40 promotes negative, 60-100 promotes positive, and 25-75% promotes neutral.
-                # As we don't want to over-represent negative/positive where the results are
-                # muddy, the neutral zone is larger than the positive/negative zones by 10%.
-                val = (1 + doc['sentiment']) / 2 # This ranges from -1 to +1, so we'll just harmonize that to 0->1 and use the azure calcs
                 
-                mood['negative'] = max(0, ((0.4 - val) * 2.5)) # For 40% and below, use 2½ distance
-                mood['positive'] = max(0, ((val-0.6) * 2.5)) # For 60% and above, use 2½ distance
-                mood['neutral'] = max(0, 1 - (abs(val - 0.5) * 2)) # Between 25% and 75% use double the distance to middle.
+                # Sentiment is the overall score, and we use that for the neutrality of a text
+                val = (1 + doc['sentiment']) / 2
+                
+                mood['negative'] = doc['negativity'] # Use the direct Bayesian score from picoAPI
+                mood['positive'] = doc['positivity'] # Use the direct Bayesian score from picoAPI
+                mood['neutral'] = max(0, 1 - (abs(val - 0.5) * 2)) # Calc neutrality to favor a middle sentiment score, ignore high/low
                 moods[int(doc['id'])] = mood # Replace moods[X] with the actual mood
                 
         else:

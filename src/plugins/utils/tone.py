@@ -181,6 +181,12 @@ def picoTone(KibbleBit, bodies):
                 mood['negative'] = doc['negativity'] # Use the direct Bayesian score from picoAPI
                 mood['positive'] = doc['positivity'] # Use the direct Bayesian score from picoAPI
                 mood['neutral'] = doc['neutrality'] # Calc neutrality to favor a middle sentiment score, ignore high/low
+                
+                # Additional (optional) emotion weighting
+                if 'emotions' in doc:
+                    for k, v in doc['emotions'].items():
+                        mood[k] = v / 100 # Value is betwen 0 and 100.
+                        
                 moods[int(doc['id'])] = mood # Replace moods[X] with the actual mood
                 
         else:

@@ -31,6 +31,7 @@ __all__ = [
     'jira',
     'ponymail',
     'ponymail-tone',
+    'ponymail-kpe',
     'pipermail',
     'github-issues',
     'bugzilla',

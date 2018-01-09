@@ -42,6 +42,22 @@ import requests
 import json
 import uuid
 
+def trimBody(body):
+    """ Quick function for trimming away the fat from emails """
+    # Cut away "On $date, jane doe wrote: " kind of texts
+    body = re.sub(r"((?:\r?\n)((on .+ wrote:[\r\n]+)|(sent from my .+)|(>+[ \t]+[^\r\n]*\r?\n[^\n]*\n*)+)+)+", "", body, flags = re.I | re.M)
+    
+    # Crop out quotes
+    lines = body.split("\n")
+    body = "\n".join([x for x in lines if not x.startswith(">")])
+    
+    # Remove hyperlinks
+    body = re.sub(r"[a-z]+://\S+", "", body)
+    
+    # Remove email addresses
+    body = re.sub(r"(<[^>]+>\s*\S+@\S+)", "", body)
+    body = re.sub(r"(\S+@\S+)", "", body)
+    return body
 
 def azureKPE(KibbleBit, bodies):
     """ KPE using Azure Text Analysis API """
@@ -62,7 +78,7 @@ def azureKPE(KibbleBit, bodies):
         for body in bodies:
             # Crop out quotes
             lines = body.split("\n")
-            body = "\n".join([x for x in lines if not x.startswith(">")])
+            body = trimBody(body)
             doc = {
                 "language": "en",
                 "id": str(a),
@@ -113,9 +129,8 @@ def picoKPE(KibbleBit, bodies):
         a = 0
         KPEs = []
         for body in bodies:
-            # Crop out quotes
-            lines = body.split("\n")
-            body = "\n".join([x for x in lines if not x.startswith(">")])
+            body = trimBody(body)
+            
             doc = {
                 "id": str(a),
                 "body": body

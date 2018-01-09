@@ -45,7 +45,7 @@ import uuid
 def trimBody(body):
     """ Quick function for trimming away the fat from emails """
     # Cut away "On $date, jane doe wrote: " kind of texts
-    body = re.sub(r"((?:\r?\n)((on .+ wrote:[\r\n]+)|(sent from my .+)|(>+[ \t]+[^\r\n]*\r?\n[^\n]*\n*)+)+)+", "", body, flags = re.I | re.M)
+    body = re.sub(r"(((?:\r?\n|^)((on .+ wrote:[\r\n]+)|(sent from my .+)|(>+[ \t]*[^\r\n]*\r?\n[^\n]*\n*)+)+)+)", "", body, flags = re.I | re.M)
     
     # Crop out quotes
     lines = body.split("\n")

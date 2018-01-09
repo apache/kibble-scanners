@@ -133,6 +133,8 @@ def scan(KibbleBit, source):
             bid = hit[0]
             eml = hit[2]
             a += 1
+            if not kpe:
+                kpe = ['_NULL_']
             eml['kpe'] = kpe
             print("Key phrases for %s: %s" % (bid, ", ".join(kpe)))
             KibbleBit.index('email', bid, eml)

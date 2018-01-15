@@ -145,7 +145,12 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             KibbleBit.pprint("Closed but no closer??")
         closerEmail = None
         status = 'closed' if st else 'open'
-    
+        
+        # Make sure we actually have field data to work with
+        if not tjson.get('fields') or not tjson['fields'].get('created'):
+            KibbleBit.pprint("[%s] JIRA response is missing field data, ignoring ticket." % key)
+            return False
+            
         cd = getTime(tjson['fields']['created'])
         rd = getTime(tjson['fields']['resolutiondate']) if 'resolutiondate' in tjson['fields'] and tjson['fields']['resolutiondate'] else None
         comments = 0

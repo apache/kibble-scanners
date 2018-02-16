@@ -210,11 +210,12 @@ def scan(KibbleBit, source):
             if 'inQueueSince' in item:
                 totalqueuetime += (NOW - int(item['inQueueSince']/1000))
         
-        avgqueuetime = totalqueuetime / min(1, len(items))
+        avgqueuetime = totalqueuetime / max(1, len(items))
         
         # Write up a queue doc
         queuedoc = {
             'id': queuehash,
+            'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(NOW)),
             'time': NOW,
             'size': len(items),
             'blocked': blocked,

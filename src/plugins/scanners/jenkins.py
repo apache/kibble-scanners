@@ -230,9 +230,6 @@ def scan(KibbleBit, source):
         }
         KibbleBit.append('ci_queue', queuedoc)
         
-        if True:
-            return True
-        
         pendingJobs = jobsjs.get('jobs', [])
         KibbleBit.pprint("Found %u jobs in Jenkins" % len(pendingJobs))
         

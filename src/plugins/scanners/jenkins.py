@@ -87,16 +87,23 @@ def scanJob(KibbleBit, source, job, creds):
                 status = 'failed'
             if build['result'] in ['ABORTED']:
                 status = 'aborted'
+            
+            # Calc when the build finished (jenkins doesn't show this)
+            if completed:
+                FIN = int(build['timestamp']/1000) + build['duration']
+            else:
+                FIN = 0
                 
             doc = {
                 # Build specific data
                 'id': buildhash,
+                'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(FIN)),
                 'buildID': build['id'],
                 'completed': completed,
                 'duration': build['duration'],
                 'job': job['name'],
                 'status': status,
-                'started': build['timestamp'],
+                'started': int(build['timestamp']/1000),
                 'ci': 'jenkins',
                 'queuetime': queuetime,
                 

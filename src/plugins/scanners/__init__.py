@@ -35,7 +35,8 @@ __all__ = [
     'pipermail',
     'github-issues',
     'bugzilla',
-    'gerrit'
+    'gerrit',
+    'jenkins'
     ]
 
 # Import each plugin into a hash called 'scanners'

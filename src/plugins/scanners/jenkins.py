@@ -102,6 +102,7 @@ def scanJob(KibbleBit, source, job, creds):
                 'completed': completed,
                 'duration': build['duration'],
                 'job': job['name'],
+                'jobURL': jobURL,
                 'status': status,
                 'started': int(build['timestamp']/1000),
                 'ci': 'jenkins',

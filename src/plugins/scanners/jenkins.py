@@ -220,11 +220,18 @@ def scan(KibbleBit, source):
         
         avgqueuetime = totalqueuetime / max(1, len(items))
         
+        # Count how many jobs are building
+        building = 0
+        for job in jobsjs.get('jobs', []):
+            if 'anime' in job['color']: # a running job will have foo_anime as color
+                building += 1
+        
         # Write up a queue doc
         queuedoc = {
             'id': queuehash,
             'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(NOW)),
             'time': NOW,
+            'building': building,
             'size': len(items),
             'blocked': blocked,
             'stuck': stuck,
@@ -237,6 +244,7 @@ def scan(KibbleBit, source):
             'upsert': True,
         }
         KibbleBit.append('ci_queue', queuedoc)
+        
         
         pendingJobs = jobsjs.get('jobs', [])
         KibbleBit.pprint("Found %u jobs in Jenkins" % len(pendingJobs))

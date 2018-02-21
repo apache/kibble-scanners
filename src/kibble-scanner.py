@@ -41,6 +41,7 @@ def base_parser():
     arg_parser.add_argument("-s", "--source", help="A specific source (wildcard) to run scans on.")
     arg_parser.add_argument("-n", "--nodes", help="Number of nodes in the cluster (used for load balancing)")
     arg_parser.add_argument("-t", "--type", help="Specific type of scanner to run (default is run all scanners)")
+    arg_parser.add_argument("-e", "--exclude", nargs = '+', help="Specific type of scanner(s) to exclude")
     arg_parser.add_argument("-v", "--view", help="Specific source view to scan (default is scan all sources)")
     return arg_parser
    
@@ -68,13 +69,14 @@ def isMine(ID, config):
 class scanThread(threading.Thread):
     """ A thread object that grabs an item from the queue and processes
         it, using whatever plugins will come out to play. """
-    def __init__(self, broker, org, i, t = None):
+    def __init__(self, broker, org, i, t = None, e = None):
         super(scanThread, self).__init__()
         self.broker = broker
         self.org = org
         self.id = i
         self.bit = self.broker.bitClass(self.broker, self.org, i)
         self.stype = t
+        self.exclude = e
         pprint("Initialized thread %i" % i)
     
     def run(self):
@@ -98,6 +100,10 @@ class scanThread(threading.Thread):
                         
                         if scanner.accepts(obj):
                             self.bit.pluginname = "plugins/scanners/" + sid
+                            # Excluded scanner type?
+                            if self.exclude and sid in self.exclude:
+                                continue
+                            # Specific scanner type or no types mentioned?
                             if not self.stype or self.stype == sid:
                                 scanner.scan(self.bit, obj)
             else:
@@ -160,7 +166,7 @@ def main():
             threads = []
             core_count = min((4, int( multiprocessing.cpu_count() )))
             for i in range(0, core_count):
-                sThread = scanThread(broker, org, i+1, args.type)
+                sThread = scanThread(broker, org, i+1, args.type, args.exclude)
                 sThread.start()
                 threads.append(sThread)
             

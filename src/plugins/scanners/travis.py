@@ -57,7 +57,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
     # For as long as pagination makes sense...
     while last_page == False:
         bURL = "https://api.travis-ci.%s/repo/%s/builds?limit=100&offset=%u" % (TLD, bid, offset)
-        print("Scanning %s" % bURL)
+        KibbleBit.pprint("Scanning %s" % bURL)
         rv = requests.get(bURL, headers = {'Travis-API-Version': '3', 'Authorization': "token %s" % token})
         if rv.status_code == 200:
             repojs = rv.json()
@@ -66,7 +66,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                 KibbleBit.pprint("Assuming this is the last page we need (travis says so)")
                 last_page = True
                 
-            print("%s has %u builds done" % (bURL, repojs['@pagination']['count']))
+            KibbleBit.pprint("%s has %u builds done" % (bURL, repojs['@pagination']['count']))
             
             # BREAKER: If we go past count somehow, and travis doesn't say so, bork anyway
             if repojs['@pagination']['count'] < offset:

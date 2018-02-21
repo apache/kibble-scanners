@@ -223,7 +223,7 @@ def scan(KibbleBit, source):
         # Count how many jobs are building
         building = 0
         for job in jobsjs.get('jobs', []):
-            if 'anime' in job['color']: # a running job will have foo_anime as color
+            if 'anime' in job.get('color', ''): # a running job will have foo_anime as color
                 building += 1
         
         # Write up a queue doc

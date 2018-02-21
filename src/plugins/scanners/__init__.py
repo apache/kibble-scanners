@@ -37,7 +37,8 @@ __all__ = [
     'bugzilla',
     'gerrit',
     'jenkins',
-    'buildbot'
+    'buildbot',
+    'travis'
     ]
 
 # Import each plugin into a hash called 'scanners'

@@ -49,75 +49,100 @@ def scanJob(KibbleBit, source, bid, token, TLD):
     found = KibbleBit.exists('cijob', dhash)
     
     # Get the job data
-    bURL = "https://api.travis-ci.%s/repo/%s/builds?limit=100" % (TLD, bid)
-    print("Scanning %s" % bURL)
-    rv = requests.get(bURL, headers = {'Travis-API-Version': '3', 'Authorization': "token %s" % token})
-    if rv.status_code == 200:
-        repojs = rv.json()
-        print("%s has %u jobs done" % (bURL, len(repojs.get('builds', []))))
-        for build in repojs.get('builds', []):
-            buildID = build['id']
-            buildProject = build['repository']['slug']
-            startedAt = build['started_at']
-            finishedAt = build['finished_at']
-            duration = build['duration']
-            completed = True if duration else False
-            duration = duration or 0
-            
-            
-            buildhash = hashlib.sha224( ("%s-%s-%s-%s" % (source['organisation'], source['sourceURL'], bid, buildID) ).encode('ascii', errors='replace')).hexdigest()
-            builddoc = None
-            try:
-                builddoc = KibbleBit.get('ci_build', buildhash)
-            except:
-                pass
-            
-            # If this build already completed, no need to parse it again
-            if builddoc and builddoc.get('completed', False):
-                continue
-            
-            # Get build status (success, failed, canceled etc)
-            status = 'building'
-            if build['state'] in ['finished', 'passed']:
-                status = 'success'
-            if build['state'] in ['failed', 'errored']:
-                status = 'failed'
-            if build['state'] in ['aborted', 'canceled']:
-                status = 'aborted'
-            
-            FIN = 0
-            STA = 0
-            if finishedAt:
-                FIN = datetime.datetime.strptime(finishedAt, "%Y-%m-%dT%H:%M:%SZ").timestamp()
-            if startedAt:
-                STA = int(datetime.datetime.strptime(startedAt, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+    pages = 0
+    offset = 0
+    last_page = False
     
-            # We don't know how to calc queues yet, set to 0
-            queuetime = 0
-
-            doc = {
-                # Build specific data
-                'id': buildhash,
-                'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(FIN)),
-                'buildID': buildID,
-                'completed': completed,
-                'duration': duration * 1000,
-                'job': buildProject,
-                'jobURL': bURL,
-                'status': status,
-                'started': STA,
-                'ci': 'travis',
-                'queuetime': queuetime,
+    # For as long as pagination makes sense...
+    while last_page == False:
+        bURL = "https://api.travis-ci.%s/repo/%s/builds?limit=100&offset=%u" % (TLD, bid, offset)
+        print("Scanning %s" % bURL)
+        rv = requests.get(bURL, headers = {'Travis-API-Version': '3', 'Authorization': "token %s" % token})
+        if rv.status_code == 200:
+            repojs = rv.json()
+            # If travis tells us it's the last page, trust it.
+            if repojs['@pagination']['is_last']:
+                KibbleBit.pprint("Assuming this is the last page we need (travis says so)")
+                last_page = True
                 
-                # Standard docs values
-                'sourceID': source['sourceID'],
-                'organisation': source['organisation'],
-                'upsert': True,
-            }
-            KibbleBit.append('ci_build', doc)
+            print("%s has %u builds done" % (bURL, repojs['@pagination']['count']))
             
-        # Yay, it worked!
-        return True
+            # BREAKER: If we go past count somehow, and travis doesn't say so, bork anyway
+            if repojs['@pagination']['count'] > offset:
+                return
+            
+            offset += 100
+            for build in repojs.get('builds', []):
+                buildID = build['id']
+                buildProject = build['repository']['slug']
+                startedAt = build['started_at']
+                finishedAt = build['finished_at']
+                duration = build['duration']
+                completed = True if duration else False
+                duration = duration or 0
+                
+                
+                buildhash = hashlib.sha224( ("%s-%s-%s-%s" % (source['organisation'], source['sourceURL'], bid, buildID) ).encode('ascii', errors='replace')).hexdigest()
+                builddoc = None
+                try:
+                    builddoc = KibbleBit.get('ci_build', buildhash)
+                except:
+                    pass
+                
+                # If this build already completed, no need to parse it again
+                if builddoc and builddoc.get('completed', False):
+                    # If we're on page > 1 and we've seen a completed build, assume
+                    # that we don't need the older ones
+                    if pages > 1:
+                        KibbleBit.pprint("Assuming this is the last page we need (found completed build on page > 1)")
+                        last_page = True
+                    continue
+                
+                # Get build status (success, failed, canceled etc)
+                status = 'building'
+                if build['state'] in ['finished', 'passed']:
+                    status = 'success'
+                if build['state'] in ['failed', 'errored']:
+                    status = 'failed'
+                if build['state'] in ['aborted', 'canceled']:
+                    status = 'aborted'
+                
+                FIN = 0
+                STA = 0
+                if finishedAt:
+                    FIN = datetime.datetime.strptime(finishedAt, "%Y-%m-%dT%H:%M:%SZ").timestamp()
+                if startedAt:
+                    STA = int(datetime.datetime.strptime(startedAt, "%Y-%m-%dT%H:%M:%SZ").timestamp())
+        
+                # We don't know how to calc queues yet, set to 0
+                queuetime = 0
+    
+                doc = {
+                    # Build specific data
+                    'id': buildhash,
+                    'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(FIN)),
+                    'buildID': buildID,
+                    'completed': completed,
+                    'duration': duration * 1000,
+                    'job': buildProject,
+                    'jobURL': bURL,
+                    'status': status,
+                    'started': STA,
+                    'ci': 'travis',
+                    'queuetime': queuetime,
+                    
+                    # Standard docs values
+                    'sourceID': source['sourceID'],
+                    'organisation': source['organisation'],
+                    'upsert': True,
+                }
+                KibbleBit.append('ci_build', doc)
+            pages += 1
+        else:
+            # We hit a snag, abort!
+            KibbleBit.pprint("Travis returned a non-200 response, aborting.")
+            return False
+
     
     # Boo, it failed!
     KibbleBit.pprint("Fetching job data failed!")

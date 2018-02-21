@@ -97,6 +97,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                     if pages > 1:
                         KibbleBit.pprint("Assuming this is the last page we need (found completed build on page > 1)")
                         last_page = True
+                        break
                     continue
                 
                 # Get build status (success, failed, canceled etc)

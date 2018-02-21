@@ -52,6 +52,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
     pages = 0
     offset = 0
     last_page = False
+    oURL = "https://api.travis-ci.%s/repo/%s/builds" % (TLD, bid)
     
     # For as long as pagination makes sense...
     while last_page == False:
@@ -125,7 +126,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                     'completed': completed,
                     'duration': duration * 1000,
                     'job': buildProject,
-                    'jobURL': bURL,
+                    'jobURL': oURL,
                     'status': status,
                     'started': STA,
                     'ci': 'travis',

@@ -145,10 +145,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
             KibbleBit.pprint("Travis returned a non-200 response, aborting.")
             return False
 
-    
-    # Boo, it failed!
-    KibbleBit.pprint("Fetching job data failed!")
-    return False
+    return True
 
 
 class travisThread(threading.Thread):

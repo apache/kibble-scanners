@@ -68,8 +68,8 @@ def scanJob(KibbleBit, source, bid, token, TLD):
             print("%s has %u builds done" % (bURL, repojs['@pagination']['count']))
             
             # BREAKER: If we go past count somehow, and travis doesn't say so, bork anyway
-            if repojs['@pagination']['count'] > offset:
-                return
+            if repojs['@pagination']['count'] < offset:
+                return True
             
             offset += 100
             for build in repojs.get('builds', []):
@@ -174,7 +174,7 @@ class travisThread(threading.Thread):
                 return
             self.block.release()
             if not scanJob(self.KibbleBit, self.source, job, self.token, self.tld):
-                self.KibbleBit.pprint("[%s] This borked, trying another one" % job['name'])
+                self.KibbleBit.pprint("[%s] This borked, trying another one" % job)
                 badOnes += 1
                 if badOnes > 100:
                     self.KibbleBit.pprint("Too many errors, bailing!")

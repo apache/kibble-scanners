@@ -238,7 +238,7 @@ def scan(KibbleBit, source):
                 if cb:
                     # Is the build currently running?
                     if cb['state'] == 'started':
-                        building += 1
+                        building += len(cb.get('jobs', [1]))
                 
                 # Queue up build jobs for the threaded scanner
                 bid = repo['id']

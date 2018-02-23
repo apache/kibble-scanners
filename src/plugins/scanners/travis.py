@@ -236,6 +236,7 @@ def scan(KibbleBit, source):
         stuck = 0 # Ditto
         avgqueuetime = 0 # Ditto, fake it
         
+        maybeQueued = []
         while jobs == 100:
             URL = "https://api.travis-ci.%s/repos?repository.active=true&sort_by=current_build:desc&offset=%u&limit=100&include=repository.last_started_build" % (TLD, offset)
             offset += 100
@@ -261,8 +262,10 @@ def scan(KibbleBit, source):
                 cb = repo.get('last_started_build')
                 if cb:
                     # Is the build currently running?
-                    if cb['state'] == 'started':
-                        building += len(cb.get('jobs', [1]))
+                    if cb['state'] in ['started','created', 'queued', 'pending']:
+                        for job in cb.get('jobs', []):
+                            maybeQueued.append(job['id'])
+                        
                 
                 # Queue up build jobs for the threaded scanner
                 bid = repo['id']
@@ -271,6 +274,21 @@ def scan(KibbleBit, source):
             jobs = len(js['repositories'])
             KibbleBit.pprint("Scanned %u jobs..." % total)
             
+        # Find out how many building and pending jobs
+        for jobID in maybeQueued:
+            URL = "https://api.travis-ci.%s/job/%u" % (TLD, jobID)
+            r = requests.get(URL, headers = {'Travis-API-Version': '3', 'Authorization': "token %s" % token})
+            if r.status_code == 200:
+                jobjs = r.json()
+                if jobjs['state'] == 'started':
+                    building += 1
+                    KibbleBit.pprint("Job %u is building" % jobID)
+                elif jobjs['state'] in ['created', 'queued', 'pending']:
+                    queued += 1
+                    blocked += 1 # Queued in Travis generally means a job can't find an executor, and thus is blocked.
+                    KibbleBit.pprint("Job %u is pending" % jobID)
+        KibbleBit.pprint("%u building, %u queued..." % (building, queued))
+        
         # Save queue snapshot
         NOW = int(datetime.datetime.utcnow().timestamp())
         queuehash = hashlib.sha224( ("%s-%s-queue-%s" % (source['organisation'], source['sourceURL'], int(time.time())) ).encode('ascii', errors='replace')).hexdigest()

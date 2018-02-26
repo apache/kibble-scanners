@@ -42,7 +42,6 @@ def accepts(source):
 def scanJob(KibbleBit, source, cat, creds):
     """ Scans a single discourse category for activity """
     NOW = int(datetime.datetime.utcnow().timestamp())
-    #dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], job['name']) ).encode('ascii', errors='replace')).hexdigest()
     
     # Get $discourseURL/c/$catID
     

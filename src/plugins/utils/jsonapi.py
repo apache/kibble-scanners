@@ -24,15 +24,17 @@ import time
 import re
 import base64
 
-def get(url, cookie = None, auth = None):
+def get(url, cookie = None, auth = None, token = None):
     headers = {
         "Content-type": "application/json",
-        "Accept": "*/*"
+        "Accept": "application/json"
     }
     if auth:
         xcreds = auth.encode(encoding='ascii', errors='replace')
         bauth = base64.encodebytes(xcreds).decode('ascii', errors='replace').replace("\n", '')
         headers["Authorization"] = "Basic %s" % bauth
+    if token:
+        headers["Authorization"] = "token %s" % token
     if cookie:
         headers["Cookie"] = cookie
     rv = requests.get(url, headers = headers)

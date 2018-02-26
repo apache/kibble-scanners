@@ -177,6 +177,7 @@ def scanJob(KibbleBit, source, cat, creds):
                         'sourceID': source['sourceID'],
                         'organisation': source['organisation'],
                         
+                        'creator': uhash,
                         'created': CreatedDate,
                         'topic': dhash,
                         'post_id': post['id'],

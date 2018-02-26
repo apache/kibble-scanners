@@ -183,6 +183,7 @@ def scanJob(KibbleBit, source, cat, creds):
                         'text': post['cooked'],
                         'url': topicdoc['url']
                     }
+                    KibbleBit.append('forum_post', pdoc)
             
         return True    
     

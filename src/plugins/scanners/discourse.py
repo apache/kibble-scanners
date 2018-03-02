@@ -87,8 +87,11 @@ def scanJob(KibbleBit, source, cat, creds):
                 # Store user-ID-to-username mapping for later
                 allUsers[user['id']] = userDoc
                 
-                # Store it (or, queue storage)
-                KibbleBit.append('person', userDoc)
+                # Store it (or, queue storage) unless it exists.
+                # We don't wanna override better data, so we check if
+                # it's there first.
+                if not KibbleBit.exists('person', dhash):
+                    KibbleBit.append('person', userDoc)
             
             # Now, for each topic, we'll store a topic document
             for topic in catjson['topic_list']['topics']:
@@ -146,10 +149,12 @@ def scanJob(KibbleBit, source, cat, creds):
                 KibbleBit.pprint("%s has %u posts" % (pURL, len(posts)))
                 for post in posts:
                     phash = hashlib.sha224( ("%s-%s-post-%s" % (source['organisation'], source['sourceURL'], post['id']) ).encode('ascii', errors='replace')).hexdigest()
+                    uname = post.get('name', post['username']) or post['username'] # Hack to get longest non-zero value
                     
                     # Find the hash of the person who posted it
-                    # We may know them, or we may have to store them
-                    if post['user_id'] in allUsers:
+                    # We may know them, or we may have to store them.
+                    # If we have better info now (full name), re-store
+                    if post['user_id'] in allUsers and allUsers[post['user_id']]['name'] == uname:
                         uhash = allUsers[post['user_id']]['id']
                     else:
                         # Same as before, fake email, store...
@@ -160,7 +165,7 @@ def scanJob(KibbleBit, source, cat, creds):
                         userDoc = {
                             'id': uhash,
                             'organisation': source['organisation'],
-                            'name': post['username'],
+                            'name': uname,
                             'email': email,
                         }
                         

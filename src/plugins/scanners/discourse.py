@@ -48,7 +48,7 @@ def scanJob(KibbleBit, source, cat, creds):
     catURL = os.path.join(source['sourceURL'], "c/%s" % cat['id'])
     KibbleBit.pprint("Scanning Discourse category '%s' at %s" % (cat['slug'], catURL))
     
-    page = 1
+    page = 0
     allUsers = {}
     
     # For each paginated result (up to page 100), check for changes

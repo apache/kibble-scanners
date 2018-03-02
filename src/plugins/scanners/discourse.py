@@ -118,11 +118,13 @@ def scanJob(KibbleBit, source, cat, creds):
                     'sourceID': source['sourceID'],
                     'organisation': source['organisation'],
                     
+                    'type': 'discourse',
                     'category': cat['slug'],
                     'title': topic['title'],
                     'creator': allUsers[topic['posters'][0]['user_id']]['id'],
                     'creatorName': allUsers[topic['posters'][0]['user_id']]['name'],
                     'created': CreatedDate,
+                    'createdDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(CreatedDate)),
                     'updated': UpdatedDate,
                     'solved': False,    # Discourse doesn't have this notion, but other forums might.
                     'posts': topic['posts_count'],
@@ -177,8 +179,10 @@ def scanJob(KibbleBit, source, cat, creds):
                         'sourceID': source['sourceID'],
                         'organisation': source['organisation'],
                         
+                        'type': 'discourse',
                         'creator': uhash,
                         'created': CreatedDate,
+                        'createdDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(CreatedDate)),
                         'topic': dhash,
                         'post_id': post['id'],
                         'text': post['cooked'],

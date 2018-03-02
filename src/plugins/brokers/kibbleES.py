@@ -22,6 +22,7 @@ import threading
 import sys
 
 KIBBLE_DB_VERSION = 2  # Current DB struct version
+ACCEPTED_DB_VERSIONS = [1,2]  # Versions we know how to work with.
 
 class KibbleESWrapper(object):
     """
@@ -273,12 +274,14 @@ class Broker:
                 sys.exit(-1)
         try:
             apidoc = es.get(index=es_config['database'], doc_type='api', id = 'current')['_source']
-            if apidoc['dbversion'] > KIBBLE_DB_VERSION:
-                sys.stderr.write("The database '%s' uses a newer structure format (version %u) than the scanners (version %u). Please upgrade your scanners.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
-                sys.exit(-1)
-            if apidoc['dbversion'] < KIBBLE_DB_VERSION:
-                sys.stderr.write("The database '%s' uses an older structure format (version %u) than the scanners (version %u). Please upgrade your main Kibble server.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
-                sys.exit(-1)
+            # We currently accept and know how to use DB versions 1 and 2.
+            if apidoc['dbversion'] not in ACCEPTED_DB_VERSIONS:
+                if apidoc['dbversion'] > KIBBLE_DB_VERSION:
+                    sys.stderr.write("The database '%s' uses a newer structure format (version %u) than the scanners (version %u). Please upgrade your scanners.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
+                    sys.exit(-1)
+                if apidoc['dbversion'] < KIBBLE_DB_VERSION:
+                    sys.stderr.write("The database '%s' uses an older structure format (version %u) than the scanners (version %u). Please upgrade your main Kibble server.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
+                    sys.exit(-1)
         except:
             sys.stderr.write("Invalid or missing API/ABI version in database %s! Please ensure the database has been primed by setup.py\n" % es_config['database'])
             sys.exit(-1)

@@ -185,12 +185,10 @@ def scanJob(KibbleBit, source, cat, creds):
                         'url': topicdoc['url']
                     }
                     KibbleBit.append('forum_post', pdoc)
-            
-        return True    
-    
-    # Boo, it failed!
-    KibbleBit.pprint("Fetching job data failed!")
-    return False
+        else:
+            KibbleBit.pprint("Fetching discourse data failed!")
+            return False
+    return True
 
 
 class discourseThread(threading.Thread):

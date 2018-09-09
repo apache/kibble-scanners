@@ -156,12 +156,12 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
         comments = 0
         if 'comment' in tjson['fields'] and tjson['fields']['comment']:
             comments = tjson['fields']['comment']['total']
-        assignee = tjson['fields']['assignee']['emailAddress'] if tjson['fields']['assignee'] else None
-        creator = tjson['fields']['reporter']['emailAddress'] if tjson['fields']['reporter'] else None
+        assignee = tjson['fields']['assignee'].get('emailAddress') if tjson['fields'].get('assignee') else None
+        creator = tjson['fields']['reporter'].get('emailAddress') if tjson['fields'].get('reporter') else None
         title = tjson['fields']['summary']
         if closer:
             #print("Parsing closer")
-            closerEmail = closer['emailAddress'].replace(" dot ", ".", 10).replace(" at ", "@", 1)
+            closerEmail = closer.get('emailAddress', 'unknown@kibble').replace(" dot ", ".", 10).replace(" at ", "@", 1)
             displayName = closer['displayName']
             if displayName and len(displayName) > 0:
                 # Add to people db

@@ -81,7 +81,7 @@ def wasclosed(js):
             if 'items' in citem:
                 for item in citem['items']:
                     if item['field'] == 'status' and (item['toString'].lower().find('closed') != -1 or item['toString'].lower().find('resolved') != -1):
-                        return (True, citem['author'])
+                        return (True, citem.get('author', 'Unknown'))
     else:
         if 'items' in js:
             for item in js['items']:

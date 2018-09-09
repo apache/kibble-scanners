@@ -81,7 +81,7 @@ def wasclosed(js):
             if 'items' in citem:
                 for item in citem['items']:
                     if item['field'] == 'status' and (item['toString'].lower().find('closed') != -1 or item['toString'].lower().find('resolved') != -1):
-                        return (True, citem.get('author', 'Unknown'))
+                        return (True, citem.get('author', {}))
     else:
         if 'items' in js:
             for item in js['items']:
@@ -162,7 +162,7 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
         if closer:
             #print("Parsing closer")
             closerEmail = closer.get('emailAddress', 'unknown@kibble').replace(" dot ", ".", 10).replace(" at ", "@", 1)
-            displayName = closer['displayName']
+            displayName = closer.get('displayName', 'Unkown')
             if displayName and len(displayName) > 0:
                 # Add to people db
                 pid = hashlib.sha1( ("%s%s" % (source['organisation'], closerEmail)).encode('ascii', errors='replace')).hexdigest()

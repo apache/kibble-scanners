@@ -92,11 +92,14 @@ def scan(KibbleBit, source):
                 diff = m.group(7)
                 insert = 0
                 delete = 0
+                files_touched = set()
                 # Diffs
                 for l in re.finditer(u"(\d+)[ \t]+(\d+)[ \t]+([^\r\n]+)", diff, flags=re.MULTILINE):
                     insert += int(l.group(1))
                     delete += int(l.group(2))
                     filename = l.group(3)
+                    if filename:
+                        files_touched.update([filename])
                     if filename and len(filename) > 0 and (not filename in modificationDates or modificationDates[filename]['timestamp'] < ct):
                         modificationDates[filename] = {
                             'hash': ch,
@@ -171,7 +174,10 @@ def scan(KibbleBit, source):
                     if not gname in people[ae]['projects']:
                         people[ae]['projects'].append(gname)
 
-
+                # Make a list of changed files, max 1024
+                filelist = list(touched_files)
+                filelist = filelist[:1023]
+                
                 # ES commit documents
                 tsd = ts - (ts % 86400)
                 js = {
@@ -188,7 +194,8 @@ def scan(KibbleBit, source):
                     'author_email': ae,
                     'insertions': insert,
                     'deletions': delete,
-                    'vcs': 'git'
+                    'vcs': 'git',
+                    'files_changed': filelist
                 }
                 jsx = {
                     'id': ch,
@@ -204,7 +211,8 @@ def scan(KibbleBit, source):
                     'insertions': insert,
                     'deletions': delete,
                     'repository': rid, # This will always ever only be the last repo that had it!
-                    'vcs': 'git'
+                    'vcs': 'git',
+                    'files_changed': filelist
                 }
                 KibbleBit.append ( 'person', {
                     'upsert': True,

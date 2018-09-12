@@ -175,7 +175,7 @@ def scan(KibbleBit, source):
                         people[ae]['projects'].append(gname)
 
                 # Make a list of changed files, max 1024
-                filelist = list(touched_files)
+                filelist = list(files_touched)
                 filelist = filelist[:1023]
                 
                 # ES commit documents

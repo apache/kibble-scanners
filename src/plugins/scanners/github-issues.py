@@ -127,6 +127,10 @@ def scan(KibbleBit, source):
         if creds and 'username' in creds:
             auth = (creds['username'], creds['password'])
     KibbleBit.pprint("Scanning for GitHub issues")
+    # Have we scanned before? If so, only do a 3 month scan here.
+    doneBefore = False
+    if source.get('steps') and source['steps'].get('issues'):
+        doneBefore = True
     source['steps']['issues'] = {
             'time': time.time(),
             'status': 'Issue scan started at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
@@ -135,7 +139,14 @@ def scan(KibbleBit, source):
         }
     KibbleBit.updateSource(source)
     try:
-        issues = plugins.utils.github.get_all(source, plugins.utils.github.issues,
+        if doneBefore:
+            since = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - (3*30*86400)))
+            KibbleBit.pprint("Fetching changes since %s" % since)
+            issues = plugins.utils.github.get_all(source, plugins.utils.github.issues,
+                                   params={'filter': 'all', 'state':'all', 'since': since},
+                                   auth=auth)
+        else:
+            issues = plugins.utils.github.get_all(source, plugins.utils.github.issues,
                                    params={'filter': 'all', 'state':'all'},
                                    auth=auth)
         KibbleBit.pprint("Fetched %s issues for %s" %(str(len(issues)), source['sourceURL']))

@@ -160,7 +160,7 @@ def scan(KibbleBit, source):
             if KibbleBit.exists('issue', dhash):
                 es_doc = KibbleBit.get('issue', dhash)
                 if not status_changed(es_doc, doc):
-                    KibbleBit.pprint("change %s seen already and status unchanged. Skipping." % issue['id'])
+                    #KibbleBit.pprint("change %s seen already and status unchanged. Skipping." % issue['id'])
                     continue
 
             update_issue(KibbleBit, doc)

@@ -19,6 +19,7 @@
 import re
 import requests
 from json import loads
+import time
 
 repo_pattern = re.compile('.*[:/]([^/]+)/([^/]+).git')
 issues_api = "https://api.github.com/repos/%s/%s/issues"
@@ -67,6 +68,7 @@ def get_all(source, f, params={}, auth=None):
     page = params.get('page', 1)
 
     while True:
+        time.sleep(1.25)
         items = f(source, params=params, auth=auth)
         if not items:
             break

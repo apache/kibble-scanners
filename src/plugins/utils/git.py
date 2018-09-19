@@ -43,7 +43,7 @@ def defaultBranch(source, datapath):
                 branch = ""
 
     # If still not found, resort to a remote listing
-    if branch == "" and repo:
+    if branch == "" and datapath:
         inp = subprocess.check_output("cd %s && git ls-remote --heads %s" % (datapath, source['sourceURL']),  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').split()
         if len(inp) > 0:
             for remote in inp:

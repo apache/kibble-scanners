@@ -178,7 +178,7 @@ def scan(KibbleBit, source):
         KibbleBit.pprint("HTTP Error, rate limit exceeded?")
         source['steps']['issues'] = {
             'time': time.time(),
-            'status': 'Issue scan failed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()) + " - rate limited??",
+            'status': 'Issue scan failed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()) + " - rate limited or no auth used??",
             'running': False,
             'good': False,
         }

@@ -65,6 +65,9 @@ def make_issue(source, issue, people):
     itype = "issue"
     if 'pull_request' in issue:
         itype = "pullrequest"
+    labels = []
+    for l in issue.get('labels', []):
+        labels.append(l['name'])
     return {
         'id': dhash,
         'key': key,
@@ -73,7 +76,7 @@ def make_issue(source, issue, people):
         'sourceID': source['sourceID'],
         'url': issue['html_url'],
         'status': issue['state'],
-        'labels': issue.get('labels', []),
+        'labels': labels,
         'created': format_date(issue['created_at'], epoch=True),
         'closed': format_date(closed_date, epoch=True),
         'issueCloser': issue_closer,

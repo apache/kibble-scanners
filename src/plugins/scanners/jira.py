@@ -111,6 +111,15 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
     found = True
     doc= None
     parseIt = False
+    
+    # the 'domain' var we try to figure out here is used
+    # for faking email addresses and keep them unique,
+    # in case JIRA has email visibility turned off.
+    domain = 'jira'
+    m = re.search(r"https?://([^/]+)", u)
+    if m:
+        domain = m.group(1)
+    
     found = KibbleBit.exists('issue', dhash)
     if not found:
         KibbleBit.pprint("[%s] We've never seen this ticket before, parsing..." % key)
@@ -129,7 +138,7 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             #KibbleBit.pprint("[%s] Ticket hasn't changed, ignoring..." % key)
     
     if parseIt:
-        KibbleBit.pprint("[%s] Parsing data from JIRA..." % key)
+        KibbleBit.pprint("[%s] Parsing data from JIRA at %s..." % (key, domain))
         queryURL = "%s/rest/api/2/issue/%s?fields=creator,reporter,status,issuetype,summary,assignee,resolutiondate,created,priority,changelog,comment,resolution,votes&expand=changelog" % (u, key)
         jiraURL = "%s/browse/%s" % (u, key)
         try:
@@ -156,12 +165,16 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
         comments = 0
         if 'comment' in tjson['fields'] and tjson['fields']['comment']:
             comments = tjson['fields']['comment']['total']
-        assignee = tjson['fields']['assignee'].get('emailAddress') if tjson['fields'].get('assignee') else None
-        creator = tjson['fields']['reporter'].get('emailAddress') if tjson['fields'].get('reporter') else None
+        assignee = tjson['fields']['assignee'].get('emailAddress', # Try email, fall back to username
+                                                   tjson['fields']['assignee'].get('name')) if tjson['fields'].get('assignee') else None
+        creator = tjson['fields']['reporter'].get('emailAddress', # Try email, fall back to username
+                                                   tjson['fields']['reporter'].get('name')) if tjson['fields'].get('reporter') else None
         title = tjson['fields']['summary']
         if closer:
             #print("Parsing closer")
-            closerEmail = closer.get('emailAddress', 'unknown@kibble').replace(" dot ", ".", 10).replace(" at ", "@", 1)
+            closerEmail = closer.get('emailAddress', closer.get('name')).replace(" dot ", ".", 10).replace(" at ", "@", 1)
+            if not '@' in closerEmail:
+                closerEmail = '%s@%s' % (closerEmail, domain)
             displayName = closer.get('displayName', 'Unkown')
             if displayName and len(displayName) > 0:
                 # Add to people db
@@ -177,6 +190,8 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             
         if creator:
             creator = creator.replace(" dot ", ".", 10).replace(" at ", "@", 1)
+            if not '@' in creator:
+                creator = '%s@%s' % (creator, domain)
             displayName = tjson['fields']['reporter']['displayName'] if tjson['fields']['reporter'] else None
             if displayName and len(displayName) > 0:
                 # Add to people db
@@ -189,7 +204,8 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
                     'upsert': True
                 }
                 KibbleBit.append('person', jsp)
-            
+        if assignee and not '@' in assignee:
+            assignee = '%s@%s' % (assignee, domain)
         jso = {
             'id': dhash,
             'key': key,

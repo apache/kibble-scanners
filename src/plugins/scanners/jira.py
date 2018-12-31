@@ -133,7 +133,10 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             KibbleBit.pprint("[%s] Ticket was recently closed, parsing it" % key)
             parseIt = True
         else:
-            pass
+            if ( ticket['issueCreator'] == 'unknown@kibble'
+                or ticket['issueCloser'] == 'unknown@kibble' ): # Gotta redo these!
+                parseIt = True
+                KibbleBit.pprint("[%s] Ticket contains erroneous data from a previous scan, reparsing" % key)
             # This is just noise!
             #KibbleBit.pprint("[%s] Ticket hasn't changed, ignoring..." % key)
     

@@ -68,8 +68,9 @@ The Kibble Scanners collect information for the Kibble Suite.
  - [cloc](https://github.com/AlDanial/cloc) version 1.76 or later `(optional)`
  - git binaries
  - python3 (3.3 or later)
- - python3-elasticsearch 
- - python3-dateutils
+ - python3-elasticsearch
+ - python3-certifi
+ - python3-yaml
 
  
 # Get involved

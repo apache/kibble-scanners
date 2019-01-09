@@ -65,19 +65,12 @@ The Kibble Scanners collect information for the Kibble Suite.
 
 ## Requirements:
 
- - [cloc](https://github.com/AlDanial/cloc) version 1.70 or later
+ - [cloc](https://github.com/AlDanial/cloc) version 1.76 or later `(optional)`
  - git binaries
  - python3 (3.3 or later)
  - python3-elasticsearch 
  - python3-dateutils
- 
-### Multi-threaded CLoC counter
- To speed up things, you can use the multi-threaded version of cloc
- found at [this location](https://raw.githubusercontent.com/stsnel/cloc/multithread/cloc).
- On machines with many cores, you may experience a tenfold speed increase in
- the SLoC and evolution scans.
- It requires ForkManager, which may be installed via CPAN:
- `cpan Parallel::ForkManager`
+
  
 # Get involved
   TBD. Please see https://kibble.apache.org/ for details!

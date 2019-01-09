@@ -22,10 +22,14 @@ import sys
 import subprocess
 import time
 import re
+import multiprocessing
 
 def count(path):
     """ Count lines of Code """
-    inp = subprocess.check_output("cloc --quiet --progress-rate=0 %s" % path, shell = True).decode('ascii', 'replace')
+    # We determine how many cores there are, and adjust the
+    # process count based on that. Max 4 procs.
+    my_core_count = min((4, int( multiprocessing.cpu_count() )))
+    inp = subprocess.check_output("cloc --quiet --progress-rate=0 --processes=%u %s" % (my_core_count, path), shell = True).decode('ascii', 'replace')
     m = re.search(r".*Language\s+files\s+blank\s+comment\s+code[\s\S]+?-+([\s\S]+?)-+[\s\S]+?SUM:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)", inp, flags=re.MULTILINE|re.UNICODE)
     languages = {}
     ccount = 0

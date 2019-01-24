@@ -24,7 +24,7 @@ import time
 import re
 import base64
 
-def get(url, cookie = None, auth = None, token = None):
+def get(url, cookie = None, auth = None, token = None, retries = 5):
     headers = {
         "Content-type": "application/json",
         "Accept": "application/json"
@@ -39,6 +39,13 @@ def get(url, cookie = None, auth = None, token = None):
         headers["Cookie"] = cookie
     rv = requests.get(url, headers = headers)
     js = rv.json()
+    # Some services may be rate limited. We'll try sleeping it off in 60 second
+    # intervals for a max of five minutes, then give up.
+    if rv.status_code == 429:
+        if retries > 0:
+            time.sleep(60)
+            retries -= 1
+            return get(url, cookie = cookie, auth = auth, token = token, retries = retries)
     if rv.status_code != 404:
         return js
     return None

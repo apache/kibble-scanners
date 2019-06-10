@@ -193,7 +193,6 @@ class KibbleBit:
                 dbname += "_%s" % js['doctype']
                 js_arr.append({
                     '_op_type': 'update' if js.get('upsert') else 'index',
-                    '_consistency': 'quorum',
                     '_index': dbname,
                     '_type': '_doc',
                     '_id': js['id'],
@@ -203,7 +202,6 @@ class KibbleBit:
             else:
                 js_arr.append({
                     '_op_type': 'update' if js.get('upsert') else 'index',
-                    '_consistency': 'quorum',
                     '_index': dbname,
                     '_type': js['doctype'],
                     '_id': js['id'],

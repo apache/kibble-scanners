@@ -24,6 +24,7 @@ import sys
 KIBBLE_DB_VERSION = 2  # Current DB struct version
 ACCEPTED_DB_VERSIONS = [1,2]  # Versions we know how to work with.
 
+
 class KibbleESWrapper(object):
     """
        Class for rewriting old-style queries to the new ones,
@@ -66,6 +67,47 @@ class KibbleESWrapper(object):
         def exists(self, index):
             return self.ES.indices.exists(index = index)
 
+class KibbleESWrapperSeven(object):
+    """
+       Class for rewriting old-style queries to the new ones,
+       where doc_type is an integral part of the DB name and NOT USED (>= 7.x)
+    """
+    def __init__(self, ES):
+        self.ES = ES
+        self.indices = self.indicesClass(ES)
+    
+    def get(self, index, doc_type, id):
+        return self.ES.get(index = index+'_'+doc_type, id = id)
+    def exists(self, index, doc_type, id):
+        return self.ES.exists(index = index+'_'+doc_type, id = id)
+    def delete(self, index, doc_type, id):
+        return self.ES.delete(index = index+'_'+doc_type, id = id)
+    def index(self, index, doc_type, id, body):
+        return self.ES.index(index = index+'_'+doc_type, id = id, body = body)
+    def update(self, index, doc_type, id, body):
+        return self.ES.update(index = index+'_'+doc_type, id = id, body = body)
+    def search(self, index, doc_type, size = 100, _source_include = None, body = None):
+        return self.ES.search(
+            index = index+'_'+doc_type,
+            size = size,
+            _source_include = _source_include,
+            body = body
+            )
+    def count(self, index, doc_type, body = None):
+        return self.ES.count(
+            index = index+'_'+doc_type,
+            body = body
+            )
+    
+    class indicesClass(object):
+        """ Indices helper class """
+        def __init__(self, ES):
+            self.ES = ES
+            
+        def exists(self, index):
+            return self.ES.indices.exists(index = index)
+
+         
 
 # This is redundant, refactor later?
 def pprint(string, err = False):
@@ -151,7 +193,6 @@ class KibbleBit:
                 dbname += "_%s" % js['doctype']
                 js_arr.append({
                     '_op_type': 'update' if js.get('upsert') else 'index',
-                    '_consistency': 'quorum',
                     '_index': dbname,
                     '_type': '_doc',
                     '_id': js['id'],
@@ -161,7 +202,6 @@ class KibbleBit:
             else:
                 js_arr.append({
                     '_op_type': 'update' if js.get('upsert') else 'index',
-                    '_consistency': 'quorum',
                     '_index': dbname,
                     '_type': js['doctype'],
                     '_id': js['id'],
@@ -260,9 +300,14 @@ class Broker:
         self.bitClass = KibbleBit
         # This bit is required since ES 6.x and above don't like document types
         self.noTypes = True if int(es_info['version']['number'].split('.')[0]) >= 6 else False
+        self.seven = True if int(es_info['version']['number'].split('.')[0]) >= 7 else False
         if self.noTypes:
             pprint("This is a type-less DB, expanding database names instead.")
-            es = KibbleESWrapper(es)
+            if self.seven:
+                pprint("We're using ES >= 7.x, NO DOC_TYPE!")
+                es = KibbleESWrapperSeven(es)
+            else:
+                es = KibbleESWrapper(es)
             self.DB = es
             if not es.indices.exists(index = es_config['database'] + "_api"):
                 sys.stderr.write("Could not find database group %s_* in ElasticSearch!\n" % es_config['database'])

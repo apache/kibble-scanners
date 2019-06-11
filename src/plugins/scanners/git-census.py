@@ -187,7 +187,7 @@ def scan(KibbleBit, source):
                     'organisation': source['organisation'],
                     'ts': ct,
                     'tsday': tsd,
-                    'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(ts)),
+                    'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(ct)),
                     'committer_name': cn,
                     'committer_email': ce,
                     'author_name': an,
@@ -203,7 +203,7 @@ def scan(KibbleBit, source):
                     'sourceID': source['sourceID'], # Only ever the last source with this
                     'ts': ct,
                     'tsday': tsd,
-                    'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(ts)),
+                    'date': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(ct)),
                     'committer_name': cn,
                     'committer_email': ce,
                     'author_name': an,

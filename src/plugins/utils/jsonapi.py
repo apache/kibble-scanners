@@ -38,7 +38,6 @@ def get(url, cookie = None, auth = None, token = None, retries = 5):
     if cookie:
         headers["Cookie"] = cookie
     rv = requests.get(url, headers = headers)
-    js = rv.json()
     # Some services may be rate limited. We'll try sleeping it off in 60 second
     # intervals for a max of five minutes, then give up.
     if rv.status_code == 429:
@@ -46,9 +45,9 @@ def get(url, cookie = None, auth = None, token = None, retries = 5):
             time.sleep(60)
             retries -= 1
             return get(url, cookie = cookie, auth = auth, token = token, retries = retries)
-    if rv.status_code != 404:
-        return js
-    return None
+    if rv.status_code < 400:
+        return rv.json()
+    raise Exception("Could not fetch JSON, server responded with status code %u" % rv.status_code)
 
 def gettxt(url, cookie = None, auth = None):
     """ Same as above, but returns as text blob """

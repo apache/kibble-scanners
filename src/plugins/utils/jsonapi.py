@@ -47,7 +47,7 @@ def get(url, cookie = None, auth = None, token = None, retries = 5):
             return get(url, cookie = cookie, auth = auth, token = token, retries = retries)
     if rv.status_code < 400:
         return rv.json()
-    raise Exception("Could not fetch JSON, server responded with status code %u" % rv.status_code)
+    raise requests.exceptions.ConnectionError("Could not fetch JSON, server responded with status code %u" % rv.status_code, response = rv)
 
 def gettxt(url, cookie = None, auth = None):
     """ Same as above, but returns as text blob """

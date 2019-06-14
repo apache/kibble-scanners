@@ -27,7 +27,8 @@ import base64
 def get(url, cookie = None, auth = None, token = None, retries = 5):
     headers = {
         "Content-type": "application/json",
-        "Accept": "application/json"
+        "Accept": "application/json",
+        "User-Agent": "Apache Kibble",
     }
     if auth:
         xcreds = auth.encode(encoding='ascii', errors='replace')
@@ -70,7 +71,8 @@ def gettxt(url, cookie = None, auth = None):
 def post(url, data, cookie = None, auth = None):
     headers = {
         "Content-type": "application/json",
-        "Accept": "*/*"
+        "Accept": "*/*",
+        "User-Agent": "Apache Kibble",
     }
     if auth:
         xcreds = auth.encode(encoding='ascii', errors='replace')

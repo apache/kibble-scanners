@@ -24,7 +24,9 @@ import time
 import re
 import base64
 
-def get(url, cookie = None, auth = None, token = None, retries = 5):
+CONNECT_TIMEOUT = 2 # Max timeout for the connect part of a request.
+                    # Should be set low as it may otherwise freeze the scanner.
+def get(url, cookie = None, auth = None, token = None, retries = 5, timeout = 30):
     headers = {
         "Content-type": "application/json",
         "Accept": "application/json",
@@ -38,14 +40,14 @@ def get(url, cookie = None, auth = None, token = None, retries = 5):
         headers["Authorization"] = "token %s" % token
     if cookie:
         headers["Cookie"] = cookie
-    rv = requests.get(url, headers = headers)
+    rv = requests.get(url, headers = headers, timeout = (CONNECT_TIMEOUT, timeout))
     # Some services may be rate limited. We'll try sleeping it off in 60 second
     # intervals for a max of five minutes, then give up.
     if rv.status_code == 429:
         if retries > 0:
             time.sleep(60)
             retries -= 1
-            return get(url, cookie = cookie, auth = auth, token = token, retries = retries)
+            return get(url, cookie = cookie, auth = auth, token = token, retries = retries, timeout = timeout)
     if rv.status_code < 400:
         return rv.json()
     raise requests.exceptions.ConnectionError("Could not fetch JSON, server responded with status code %u" % rv.status_code, response = rv)

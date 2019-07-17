@@ -118,7 +118,7 @@ def update_person(KibbleBit, person):
     KibbleBit.append('person', person)
     
 
-def scan(KibbleBit, source):
+def scan(KibbleBit, source, firstAttempt = True):
     auth=None
     people = {}
     if 'creds' in source:
@@ -126,7 +126,8 @@ def scan(KibbleBit, source):
         creds = source['creds']
         if creds and 'username' in creds:
             auth = (creds['username'], creds['password'])
-    KibbleBit.pprint("Scanning for GitHub issues")
+    TL = plugins.utils.github.get_tokens_left(auth=auth)
+    KibbleBit.pprint("Scanning for GitHub issues (%u tokens left on GitHub)" % TL)
     # Have we scanned before? If so, only do a 3 month scan here.
     doneBefore = False
     if source.get('steps') and source['steps'].get('issues'):
@@ -185,7 +186,23 @@ def scan(KibbleBit, source):
         KibbleBit.updateSource(source)
 
     except requests.HTTPError as e:
-        # we've likely hit our GH API quota for the hour, so we re-try
+        # If we errored out because of rate limiting, retry later, otherwise bail
+        if firstAttempt:
+            sleeps = 0
+            if plugins.utils.github.get_tokens_left(auth=auth) < 10:
+                KibbleBit.pprint("Hit rate limits, trying to sleep it off!")
+                while plugins.utils.github.get_tokens_left(auth=auth) < 10:
+                    sleeps += 1
+                    if sleeps > 24:
+                        KibbleBit.pprint("Slept for too long without finding a reset rate limit, giving up!")
+                        break
+                    time.sleep(300) # Sleep 5 min, then check again..
+                # If we have tokens, try one more time...
+                if plugins.utils.github.get_tokens_left(auth=auth) > 10:
+                    scan(KibbleBit, source, False) # If this one fails, bail completely
+                    return
+            
+            
         KibbleBit.pprint("HTTP Error, rate limit exceeded?")
         source['steps']['issues'] = {
             'time': time.time(),

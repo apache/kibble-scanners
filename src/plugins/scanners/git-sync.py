@@ -35,12 +35,12 @@ def accepts(source):
         return True
     return False
     
-def scan(KibbletBit, source):
+def scan(KibbleBit, source):
     
     # Get some vars, construct a data path for the repo
     path = source['sourceID']
     url = source['sourceURL']
-    rootpath = "%s/%s/git" % (KibbletBit.config['scanner']['scratchdir'], source['organisation'])
+    rootpath = "%s/%s/git" % (KibbleBit.config['scanner']['scratchdir'], source['organisation'])
     
     # If the root path does not exist, try to make it recursively.
     if not os.path.exists(rootpath):
@@ -54,13 +54,13 @@ def scan(KibbletBit, source):
                 'running': False,
                 'good': False
             }
-            KibbletBit.updateSource(source)
+            KibbleBit.updateSource(source)
             return
     
     # This is were the repo should be cloned
     datapath = os.path.join(rootpath, path)
     
-    KibbletBit.pprint("Checking out %s as %s" % (url, path))
+    KibbleBit.pprint("Checking out %s as %s" % (url, path))
 
     try:
         source['steps']['sync'] = {
@@ -69,14 +69,14 @@ def scan(KibbletBit, source):
             'running': True,
             'good': True
         }
-        KibbletBit.updateSource(source)
+        KibbleBit.updateSource(source)
         
         # If we already checked this out earlier, just sync it.
         if os.path.exists(datapath):
-            KibbletBit.pprint("Repo %s exists, fetching changes..." % datapath)
+            KibbleBit.pprint("Repo %s exists, fetching changes..." % datapath)
             
             # Do we have a default branch here?
-            branch = plugins.utils.git.defaultBranch(source, datapath)
+            branch = plugins.utils.git.defaultBranch(source, datapath, KibbleBit)
             if len(branch) == 0:
                 source['default_branch'] = branch
                 source['steps']['sync'] = {
@@ -86,11 +86,11 @@ def scan(KibbletBit, source):
                     'running': False,
                     'good': False
                 }
-                KibbletBit.updateSource(source)
-                KibbletBit.pprint("No default branch found for %s (%s)" % (source['sourceID'], source['sourceURL']))
+                KibbleBit.updateSource(source)
+                KibbleBit.pprint("No default branch found for %s (%s)" % (source['sourceID'], source['sourceURL']))
                 return
 
-            KibbletBit.pprint("Using branch %s" % branch)
+            KibbleBit.pprint("Using branch %s" % branch)
             # Try twice checking out the main branch and fetching changes.
             # Sometimes we need to clean up after older scanners, which is
             # why we try twice. If first attempt fails, clean up and try again.
@@ -115,12 +115,12 @@ def scan(KibbletBit, source):
                             pass
         # This is a new repo, clone it!
         else:
-            KibbletBit.pprint("%s is new, cloning...!" % datapath)
+            KibbleBit.pprint("%s is new, cloning...!" % datapath)
             subprocess.check_output("GIT_TERMINAL_PROMPT=0 cd %s && git clone %s %s" % (rootpath, url, path), shell = True, stderr=subprocess.STDOUT)
 
     except subprocess.CalledProcessError as err:
-        KibbletBit.pprint("Repository sync failed (no master?)")
-        KibbletBit.pprint(str(err.output))
+        KibbleBit.pprint("Repository sync failed (no master?)")
+        KibbleBit.pprint(str(err.output))
         source['steps']['sync'] = {
             'time': time.time(),
             'status': 'Sync failed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
@@ -128,7 +128,7 @@ def scan(KibbletBit, source):
             'good': False,
             'exception': str(err.output)
         }
-        KibbletBit.updateSource(source)
+        KibbleBit.updateSource(source)
         return
     
     # All good, yay!
@@ -138,5 +138,5 @@ def scan(KibbletBit, source):
             'running': False,
             'good': True
         }
-    KibbletBit.updateSource(source)
+    KibbleBit.updateSource(source)
     

@@ -22,33 +22,43 @@ import sys
 import subprocess
 import re
 
-def defaultBranch(source, datapath):
+def defaultBranch(source, datapath, KibbleBit = None):
     """ Tries to figure out what the main branch of a repo is """
+    wanted_branches = ['master', 'trunk']
     branch = ""
-    try:
-        branch = subprocess.check_output('cd %s && git rev-parse --abbrev-ref master' % datapath,  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').strip().strip("* ")
-    except:
+    # If we have an override of branches we like, use 'em
+    if KibbleBit and KibbleBit.config.get('git'):
+        wanted_branches = KibbleBit.config['git'].get('wanted_branches', wanted_branches)
+    foundBranch = False
+    
+    # For each wanted branch, in order, look for it in our clone,
+    # and return the name if found.
+    for B in wanted_branches:
         try:
-            branch = subprocess.check_output('cd %s & git rev-parse --abbrev-ref trunk' % datapath,  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').strip().strip("* ")
+            branch = subprocess.check_output('cd %s && git rev-parse --abbrev-ref %s' % (datapath, B),  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').strip().strip("* ")
+            return branch
         except:
-            try:
-                inp = subprocess.check_output("cd %s && git branch -a | awk -F ' +' '! /\(no branch\)/ {print $2}'" % datapath,  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').split()
-                if len(inp) > 0:
-                    for b in sorted(inp):
-                        if b.find("detached") == -1:
-                            branch = str(b.replace("remotes/origin/", "", 1))
-                            if branch == 'master' or branch == "trunk":
-                                break
-            except:
-                branch = ""
-
-    # If still not found, resort to a remote listing
-    if branch == "" and datapath:
-        inp = subprocess.check_output("cd %s && git ls-remote --heads %s" % (datapath, source['sourceURL']),  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').split()
+            pass
+    # If we couldn't find it locally, looking at all (local+remote)
+    try:
+        inp = subprocess.check_output("cd %s && git branch -a | awk -F ' +' '! /\(no branch\)/ {print $2}'" % datapath,  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').split()
         if len(inp) > 0:
-            for remote in inp:
-                m = re.match(r"[a-f0-9]+\s+refs/heads/(?:remotes/)?(.+)", remote)
-                if m:
-                    branch = m.group(1)
-                    break
-    return branch.replace("remotes/", "", 1)
+            for b in sorted(inp):
+                if b.find("detached") == -1:
+                    branch = str(b.replace("remotes/origin/", "", 1))
+                    for B in wanted_branches:
+                        if branch == B:
+                            return branch
+    except:
+        pass
+
+    # If still not found, resort to whatever branch comes first in the remote listing...
+    inp = subprocess.check_output("cd %s && git ls-remote --heads %s" % (datapath, source['sourceURL']),  shell = True, stderr=subprocess.DEVNULL).decode('ascii', 'replace').split()
+    if len(inp) > 0:
+        for remote in inp:
+            m = re.match(r"[a-f0-9]+\s+refs/heads/(?:remotes/)?(.+)", remote)
+            if m:
+                branch = m.group(1)
+                return branch
+    # Give up
+    return ""

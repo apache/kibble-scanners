@@ -90,7 +90,7 @@ def scanJob(KibbleBit, source, job, creds):
             
             # Calc when the build finished (jenkins doesn't show this)
             if completed:
-                FIN = int(build['timestamp']/1000) + build['duration']
+                FIN = int(build['timestamp'] + build['duration']) / 1000
             else:
                 FIN = 0
                 

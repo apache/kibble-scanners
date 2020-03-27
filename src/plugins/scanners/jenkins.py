@@ -24,6 +24,7 @@ import plugins.utils.jsonapi
 import threading
 import requests.exceptions
 import os
+import urllib.parse
 
 """
 This is the Kibble Jenkins scanner plugin.
@@ -42,21 +43,24 @@ def accepts(source):
 def scanJob(KibbleBit, source, job, creds):
     """ Scans a single job for activity """
     NOW = int(datetime.datetime.utcnow().timestamp())
-    dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], job['name']) ).encode('ascii', errors='replace')).hexdigest()
+    jname = job['name']
+    if job.get('folder'):
+        jname = job.get('folder') + '-' + job['name']
+    dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], jname) ).encode('ascii', errors='replace')).hexdigest()
     found = True
     doc= None
     parseIt = False
     found = KibbleBit.exists('cijob', dhash)
     
     # Get $jenkins/job/$job-name/json...
-    jobURL = os.path.join(source['sourceURL'], "job/%s/api/json?depth=2&tree=builds[number,status,timestamp,id,result,duration]" % job['name'])
+    jobURL = "%s/api/json?depth=2&tree=builds[number,status,timestamp,id,result,duration]" % job['fullURL']
     KibbleBit.pprint(jobURL)
     jobjson = plugins.utils.jsonapi.get(jobURL, auth = creds)
     
     # If valid JSON, ...
     if jobjson:
         for build in jobjson.get('builds', []):
-            buildhash = hashlib.sha224( ("%s-%s-%s-%s" % (source['organisation'], source['sourceURL'], job['name'], build['id']) ).encode('ascii', errors='replace')).hexdigest()
+            buildhash = hashlib.sha224( ("%s-%s-%s-%s" % (source['organisation'], source['sourceURL'], jname, build['id']) ).encode('ascii', errors='replace')).hexdigest()
             builddoc = None
             try:
                 builddoc = KibbleBit.get('ci_build', buildhash)
@@ -67,7 +71,7 @@ def scanJob(KibbleBit, source, job, creds):
             if builddoc and builddoc.get('completed', False):
                 continue
             
-            KibbleBit.pprint("[%s-%s] This is new or pending, analyzing..." % (job['name'], build['id']))
+            KibbleBit.pprint("[%s-%s] This is new or pending, analyzing..." % (jname, build['id']))
             
             completed = True if build['result'] else False
             
@@ -101,7 +105,7 @@ def scanJob(KibbleBit, source, job, creds):
                 'buildID': build['id'],
                 'completed': completed,
                 'duration': build['duration'],
-                'job': job['name'],
+                'job': jname,
                 'jobURL': jobURL,
                 'status': status,
                 'started': int(build['timestamp']/1000),
@@ -145,7 +149,11 @@ class jenkinsThread(threading.Thread):
                 self.block.release()
                 return
             self.block.release()
-            if not scanJob(self.KibbleBit, self.source, job, self.creds):
+            jfolder = job.get('folder')
+            ssource = dict(self.source)
+            if jfolder:
+                ssource['sourceURL'] += '/job/' + jfolder
+            if not scanJob(self.KibbleBit, ssource, job, self.creds):
                 self.KibbleBit.pprint("[%s] This borked, trying another one" % job['name'])
                 badOnes += 1
                 if badOnes > 100:
@@ -220,12 +228,9 @@ def scan(KibbleBit, source):
         
         avgqueuetime = totalqueuetime / max(1, len(items))
         
-        # Count how many jobs are building
-        building = 0
-        for job in jobsjs.get('jobs', []):
-            if 'anime' in job.get('color', ''): # a running job will have foo_anime as color
-                building += 1
-        
+        # Count how many jobs are building, find any folders...
+        actual_jobs, building = get_all_jobs(KibbleBit, source, jobsjs.get('jobs', []), creds)
+
         # Write up a queue doc
         queuedoc = {
             'id': queuehash,
@@ -246,7 +251,7 @@ def scan(KibbleBit, source):
         KibbleBit.append('ci_queue', queuedoc)
         
         
-        pendingJobs = jobsjs.get('jobs', [])
+        pendingJobs = actual_jobs
         KibbleBit.pprint("Found %u jobs in Jenkins" % len(pendingJobs))
         
         threads = []
@@ -271,3 +276,35 @@ def scan(KibbleBit, source):
         }
         KibbleBit.updateSource(source)
     
+def get_all_jobs(KibbleBit, source, joblist, creds):
+    real_jobs = []
+    building = 0
+    for job in joblist:
+        if 'anime' in job.get('color', ''):  # a running job will have foo_anime as color
+            building += 1
+        # Is this a job folder?
+        jclass = job.get('_class')
+        if jclass in ['jenkins.branch.OrganizationFolder', 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject']:
+            KibbleBit.pprint("%s is a jobs folder, expanding..." % job['name'])
+            csURL = '%s/job/%s' % (source['sourceURL'], urllib.parse.quote(job['name'].replace('/', '%2F')))
+            try:
+                child_jobs = plugins.utils.jsonapi.get("%s/api/json?tree=jobs[name,color]&depth=1" % csURL,
+                                                       auth=creds)
+                csource = dict(source)
+                csource['sourceURL'] = csURL
+                if not csource.get('folder'):
+                    csource['folder'] = job['name']
+                else:
+                    csource['folder'] += '-' + job['name']
+                cjobs, cbuilding = get_all_jobs(KibbleBit, csource, child_jobs.get('jobs', []), creds)
+                building += cbuilding
+                for cjob in cjobs:
+                    real_jobs.append(cjob)
+            except:
+                KibbleBit.pprint("Couldn't get child jobs, bailing")
+                print("%s/api/json?tree=jobs[name,color]&depth=1" % csURL)
+        else:
+            job['fullURL'] = '%s/job/%s' % (source['sourceURL'], urllib.parse.quote(job['name'].replace('/', '%2F')))
+            job['folder'] = source.get('folder')
+            real_jobs.append(job)
+    return real_jobs, building

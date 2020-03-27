@@ -280,8 +280,6 @@ def get_all_jobs(KibbleBit, source, joblist, creds):
     real_jobs = []
     building = 0
     for job in joblist:
-        if 'anime' in job.get('color', ''):  # a running job will have foo_anime as color
-            building += 1
         # Is this a job folder?
         jclass = job.get('_class')
         if jclass in ['jenkins.branch.OrganizationFolder', 'org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject']:
@@ -303,7 +301,11 @@ def get_all_jobs(KibbleBit, source, joblist, creds):
             except:
                 KibbleBit.pprint("Couldn't get child jobs, bailing")
                 print("%s/api/json?tree=jobs[name,color]&depth=1" % csURL)
+        # Or standard job?
         else:
+            # Is it building?
+            if 'anime' in job.get('color', ''):  # a running job will have foo_anime as color
+                building += 1
             job['fullURL'] = '%s/job/%s' % (source['sourceURL'], urllib.parse.quote(job['name'].replace('/', '%2F')))
             job['folder'] = source.get('folder')
             real_jobs.append(job)

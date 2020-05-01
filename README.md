@@ -53,6 +53,8 @@ The Kibble Scanners collect information for the Kibble Suite.
  - Apache Pony Mail (`plugins/scanners/ponymail.py`)
  - Atlassian JIRA (`plugins/scanners/jira.py`)
  - BugZilla Issue Tracker (`plugins/scanners/bugzilla.py`)
+ - BuildBot (`plugins/scanners/buildbot.py`)
+ - Discourse (`plugins/scanners/discourse.py`)
  - Gerrit Code Review (`plugins/scanners/gerrit.py`)
  - Git Repository Fetcher (`plugins/scanners/git-sync.py`)
  - Git Census Counter (`plugins/scanners/git-census.py`)
@@ -61,7 +63,8 @@ The Kibble Scanners collect information for the Kibble Suite.
  - GitHub Issues/PRs (`plugins/scanners/github.py`)
  - GitHub Traffic Statistics (`plugins/scanners/github-stats.py`)
  - GNU Mailman Pipermail (`plugins/scanners/pipermail.py`)
- 
+ - Jenkins (`plugins/scanners/jenkins.py`)
+ - Travis CI (`plugins/scanners/travis.py`)
 
 ## Requirements:
 

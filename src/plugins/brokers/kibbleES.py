@@ -44,12 +44,11 @@ class KibbleESWrapper(object):
         return self.ES.index(index = index+'_'+doc_type, doc_type = '_doc', id = id, body = body)
     def update(self, index, doc_type, id, body):
         return self.ES.update(index = index+'_'+doc_type, doc_type = '_doc', id = id, body = body)
-    def search(self, index, doc_type, size = 100, _source_include = None, body = None):
+    def search(self, index, doc_type, size = 100, body = None):
         return self.ES.search(
             index = index+'_'+doc_type,
             doc_type = '_doc',
             size = size,
-            _source_include = _source_include,
             body = body
             )
     def count(self, index, doc_type, body = None):
@@ -86,11 +85,10 @@ class KibbleESWrapperSeven(object):
         return self.ES.index(index = index+'_'+doc_type, id = id, body = body)
     def update(self, index, doc_type, id, body):
         return self.ES.update(index = index+'_'+doc_type, id = id, body = body)
-    def search(self, index, doc_type, size = 100, _source_include = None, body = None):
+    def search(self, index, doc_type, size = 100, body = None):
         return self.ES.search(
             index = index+'_'+doc_type,
             size = size,
-            _source_include = _source_include,
             body = body
             )
     def count(self, index, doc_type, body = None):

@@ -315,19 +315,15 @@ class Broker:
             if not es.indices.exists(index = es_config['database']):
                 sys.stderr.write("Could not find database %s in ElasticSearch!\n" % es_config['database'])
                 sys.exit(-1)
-        try:
-            apidoc = es.get(index=es_config['database'], doc_type='api', id = 'current')['_source']
-            # We currently accept and know how to use DB versions 1 and 2.
-            if apidoc['dbversion'] not in ACCEPTED_DB_VERSIONS:
-                if apidoc['dbversion'] > KIBBLE_DB_VERSION:
-                    sys.stderr.write("The database '%s' uses a newer structure format (version %u) than the scanners (version %u). Please upgrade your scanners.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
-                    sys.exit(-1)
-                if apidoc['dbversion'] < KIBBLE_DB_VERSION:
-                    sys.stderr.write("The database '%s' uses an older structure format (version %u) than the scanners (version %u). Please upgrade your main Kibble server.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
-                    sys.exit(-1)
-        except:
-            sys.stderr.write("Invalid or missing API/ABI version in database %s! Please ensure the database has been primed by setup.py\n" % es_config['database'])
-            sys.exit(-1)
+        apidoc = es.get(index=es_config['database'], doc_type='api', id = 'current')['_source']
+        # We currently accept and know how to use DB versions 1 and 2.
+        if apidoc['dbversion'] not in ACCEPTED_DB_VERSIONS:
+            if apidoc['dbversion'] > KIBBLE_DB_VERSION:
+                sys.stderr.write("The database '%s' uses a newer structure format (version %u) than the scanners (version %u). Please upgrade your scanners.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
+                sys.exit(-1)
+            if apidoc['dbversion'] < KIBBLE_DB_VERSION:
+                sys.stderr.write("The database '%s' uses an older structure format (version %u) than the scanners (version %u). Please upgrade your main Kibble server.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
+                sys.exit(-1)
     
     def organisations(self):
         """ Return a list of all organisations """

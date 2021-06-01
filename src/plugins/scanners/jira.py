@@ -290,9 +290,9 @@ def scan(KibbleBit, source):
             KibbleBit.pprint("JIRA at %s requires authentication, but none was found! Bailing." % source['sourceURL'])
             source['steps']['issues'] = {
                 'time': time.time(),
-                'status': 'Parsing JIRA changes...',
-                'running': True,
-                'good': True
+                'status': 'JIRA endpoint requires auth, but none was provided!',
+                'running': False,
+                'good': False
             }
             KibbleBit.updateSource(source)
             return
@@ -325,7 +325,18 @@ def scan(KibbleBit, source):
         latestURL = "%s/rest/api/2/search?jql=project=%s+order+by+createdDate+DESC&fields=id,key&maxResults=1" % (u, instance)
         js = None
         
-        js = plugins.utils.jsonapi.get(latestURL, auth = creds)
+        try:
+            js = plugins.utils.jsonapi.get(latestURL, auth = creds)
+        except requests.exceptions.ConnectionError as err:
+            KibbleBit.pprint("Connection error, skipping this ticket for now!")
+            source['steps']['issues'] = {
+                 'time': time.time(),
+                 'status': 'Connection error occurred while scanning',
+                 'running': False,
+                 'good': False
+             }
+             KibbleBit.updateSource(source)
+             return
         if 'issues' in js and len(js['issues']) == 1:
             key = js['issues'][0]['key']
             m = re.search(r"-(\d+)$", key)

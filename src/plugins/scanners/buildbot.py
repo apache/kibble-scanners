@@ -48,7 +48,7 @@ def scanJob(KibbleBit, source, job, creds):
     parseIt = False
     found = KibbleBit.exists('cijob', dhash)
     
-    jobURL = "%s/json/builders/%s/builds/_all" % (source['sourceURL'], job)
+    jobURL = "%s/api/v2/builders/%s/builds" % (source['sourceURL'], job)
     KibbleBit.pprint(jobURL)
     jobjson = plugins.utils.jsonapi.get(jobURL, auth = creds)
     
@@ -186,7 +186,7 @@ def scan(KibbleBit, source):
         # Get the job list
         sURL = source['sourceURL']
         KibbleBit.pprint("Getting job list...")
-        builders = plugins.utils.jsonapi.get("%s/json/builders" % sURL , auth = creds)
+        builders = plugins.utils.jsonapi.get("%s/api/v2/builders" % sURL , auth = creds)
         
         # Save queue snapshot
         NOW = int(datetime.datetime.utcnow().timestamp())

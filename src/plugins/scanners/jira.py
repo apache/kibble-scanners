@@ -330,13 +330,13 @@ def scan(KibbleBit, source):
         except requests.exceptions.ConnectionError as err:
             KibbleBit.pprint("Connection error, skipping this ticket for now!")
             source['steps']['issues'] = {
-                 'time': time.time(),
-                 'status': 'Connection error occurred while scanning',
-                 'running': False,
-                 'good': False
-             }
-             KibbleBit.updateSource(source)
-             return
+                'time': time.time(),
+                'status': 'Connection error occurred while scanning',
+                'running': False,
+                'good': False
+            }
+            KibbleBit.updateSource(source)
+            return
         if 'issues' in js and len(js['issues']) == 1:
             key = js['issues'][0]['key']
             m = re.search(r"-(\d+)$", key)

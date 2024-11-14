@@ -119,7 +119,7 @@ def main():
     # Load config yaml
     if args.config:
         CONFIG_FILE = args.config
-    config = yaml.load(open(CONFIG_FILE))
+    config = yaml.load(open(CONFIG_FILE), Loader=yaml.Loader)
     pprint("Loaded YAML config from %s" % CONFIG_FILE)
     
     # Which broker type do we use here?

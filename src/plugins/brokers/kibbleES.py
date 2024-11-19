@@ -218,7 +218,7 @@ class KibbleBit:
             pprint("Warning: Could not bulk insert: %s" % err)
             self.traceBack()
             
-    def traceBack():
+    def traceBack(self):
         err_type, err_value, tb = sys.exc_info()
         traceback_output = ['API traceback:']
         traceback_output += traceback.format_tb(tb)
@@ -326,7 +326,7 @@ class Broker:
         self.eight = True if int(es_info['version']['number'].split('.')[0]) >= 8 else False
         if self.noTypes:
             pprint("This is a type-less DB, expanding database names instead.")
-            if self.eight && auth is not None:
+            if self.eight and auth is not None:
                 pprint("We're using ES >= 8.x, NO DOC_TYPE WITH BASIC_AUTH OPTIONS ")
                 es =  _KibbleESWrapperSeven(es, auth)
             elif self.seven:

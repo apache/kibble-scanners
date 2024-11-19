@@ -38,7 +38,7 @@ def base_parser():
     arg_parser.add_argument("-o", "--org", help="The organisation to gather stats for. If left out, all organisations will be scanned.")
     arg_parser.add_argument("-f", "--config", help="Location of the yaml config file (full path)")
     arg_parser.add_argument("-a", "--age", help="Minimum age in hours before performing a new scan on an already processed source. --age 12 will not process any source that was processed less than 12 hours ago, but will process new sources.")
-    arg_parser.add_argument("-s", "--source", help="A specific source (wildcard) to run scans on.")
+    arg_parser.add_argument("-s", "--source", help="A specific (existing in any org) source (wildcard) to run scans on.")
     arg_parser.add_argument("-n", "--nodes", help="Number of nodes in the cluster (used for load balancing)")
     arg_parser.add_argument("-t", "--type", help="Specific type of scanner to run (default is run all scanners)")
     arg_parser.add_argument("-e", "--exclude", nargs = '+', help="Specific type of scanner(s) to exclude")
@@ -157,7 +157,8 @@ def main():
             else:
                 PENDING_OBJECTS = []
                 for source in org.sources(view=args.view):
-                    if not args.source or (args.source == source['sourceID']):
+                    #pprint("Checkng source %s" % source)
+                    if not args.source or (args.source == source['sourceID']) or (args.source == source['sourceURL']):
                         PENDING_OBJECTS.append(source)
                 sourceNo += len(PENDING_OBJECTS)
             

@@ -59,7 +59,7 @@ def make_issue(source, issue, people):
     owner_email = people[issue['user']['login']]['email']
 
     issue_closer = owner_email
-    if 'closed_by' in issue:
+    if 'closed_by' in issue and issue['closed_by'] is not None:
         issue_closer = people[issue['closed_by']['login']]
     # Is this an issue ro a pull request?
     itype = "issue"
@@ -116,7 +116,7 @@ def update_issue(KibbleBit, issue):
 def update_person(KibbleBit, person):
     person['upsert'] = True
     KibbleBit.append('person', person)
-    
+
 
 def scan(KibbleBit, source, firstAttempt = True):
     auth=None
@@ -160,7 +160,8 @@ def scan(KibbleBit, source, firstAttempt = True):
                 people[issue['user']['login']] = person
                 update_person(KibbleBit, person)
 
-            if 'closed_by' in issue and not issue['closed_by']['login'] in people:
+            #KibbleBit.pprint("issue: %s" % issue )
+            if 'closed_by' in issue and issue['closed_by'] is not None and not issue['closed_by']['login'] in people:
                 closer = make_person(source, issue, plugins.utils.github.user(issue['closed_by']['url'],
                                                           auth=auth))
                 people[issue['closed_by']['login']] = closer
@@ -176,7 +177,7 @@ def scan(KibbleBit, source, firstAttempt = True):
                     continue
 
             update_issue(KibbleBit, doc)
-        
+
         source['steps']['issues'] = {
             'time': time.time(),
             'status': 'Issue scan completed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
@@ -201,8 +202,8 @@ def scan(KibbleBit, source, firstAttempt = True):
                 if plugins.utils.github.get_tokens_left(auth=auth) > 10:
                     scan(KibbleBit, source, False) # If this one fails, bail completely
                     return
-            
-            
+
+
         KibbleBit.pprint("HTTP Error, rate limit exceeded?")
         source['steps']['issues'] = {
             'time': time.time(),

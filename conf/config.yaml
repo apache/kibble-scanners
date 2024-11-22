@@ -6,6 +6,7 @@ elasticsearch:
     ssl:        false
     uri:        ""
     database:   kibble
+    versionHint: 8
 
 # If enabled, kibble scanners will use the HTTP JSON API
 broker:

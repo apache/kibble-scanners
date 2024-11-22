@@ -25,7 +25,7 @@ KIBBLE_DB_VERSION = 2  # Current DB struct version
 ACCEPTED_DB_VERSIONS = [1,2]  # Versions we know how to work with.
 
 
-class KibbleESWrapper(object):
+class _KibbleESWrapper(object):
     """
        Class for rewriting old-style queries to the new ones,
        where doc_type is an integral part of the DB name
@@ -66,13 +66,17 @@ class KibbleESWrapper(object):
         def exists(self, index):
             return self.ES.indices.exists(index = index)
 
-class KibbleESWrapperSeven(object):
+class _KibbleESWrapperSeven(object):
     """
        Class for rewriting old-style queries to the new ones,
        where doc_type is an integral part of the DB name and NOT USED (>= 7.x)
     """
-    def __init__(self, ES):
-        self.ES = ES
+    def __init__(self, ES, auth):
+        if (auth is not None):
+            self.ES = ES.options(basic_auth=auth)
+        else:
+            self.ES = ES
+ 
         self.indices = self.indicesClass(ES)
     
     def get(self, index, doc_type, id):
@@ -104,8 +108,8 @@ class KibbleESWrapperSeven(object):
             
         def exists(self, index):
             return self.ES.indices.exists(index = index)
+            
 
-         
 
 # This is redundant, refactor later?
 def pprint(string, err = False):
@@ -144,9 +148,9 @@ class KibbleBit:
     def updateSource(self, source):
         """ Updates a source document, usually with a status update """
         self.broker.DB.index(index=self.broker.config['elasticsearch']['database'],
-                doc_type="source",
-                id=source['sourceID'],
-                body = source
+            doc_type="source",
+            id=source['sourceID'],
+            body = source
         )
         
     def get(self, doctype, docid):
@@ -189,14 +193,16 @@ class KibbleBit:
             dbname = self.broker.config['elasticsearch']['database']
             if self.broker.noTypes:
                 dbname += "_%s" % js['doctype']
-                js_arr.append({
+                defaultJSON = {
                     '_op_type': 'update' if js.get('upsert') else 'index',
                     '_index': dbname,
-                    '_type': '_doc',
                     '_id': js['id'],
                     'doc' if js.get('upsert') else '_source': doc,
                     'doc_as_upsert': True,
-                })
+                }
+                if self.broker.seven is False:
+                    defaultJSON['_type'] = '_doc'
+                js_arr.append( defaultJSON )
             else:
                 js_arr.append({
                     '_op_type': 'update' if js.get('upsert') else 'index',
@@ -210,6 +216,15 @@ class KibbleBit:
             elasticsearch.helpers.bulk(self.broker.oDB, js_arr)
         except Exception as err:
             pprint("Warning: Could not bulk insert: %s" % err)
+            self.traceBack()
+            
+    def traceBack(self):
+        err_type, err_value, tb = sys.exc_info()
+        traceback_output = ['API traceback:']
+        traceback_output += traceback.format_tb(tb)
+        traceback_output.append('%s: %s' % (err_type.__name__, err_value))
+        pprint("Error: traceback_output: %s" % (traceback_output)) 
+        return traceback_output
         
 
 class KibbleOrganisation:
@@ -279,14 +294,23 @@ class Broker:
         if 'user' in es_config:
             auth = (es_config['user'], es_config['password'])
         pprint("Connecting to ElasticSearch database at %s:%i..." % (es_config['hostname'], es_config.get('port', 9200)))
-        es = elasticsearch.Elasticsearch([{
+        
+        defaultELConfig = {
             'host': es_config['hostname'],
-            'port': int(es_config.get('port', 9200)),
-            'use_ssl': es_config.get('ssl', False),
-            'verify_certs': False,
-            'url_prefix': es_config.get('uri', ''),
-            'http_auth': auth
-        }],
+            'port': int(es_config.get('port', 9200))
+        }
+        versionHint = config['elasticsearch']['versionHint']
+        if (versionHint >= 7):
+            defaultELConfig['scheme'] = 'https' if (es_config['ssl']) else 'http'
+            defaultELConfig['path_prefix'] = es_config.get('uri', '')
+            # defaultELConfig['basic_auth'] = auth       configured like  .options(basic_auth=auth)).search
+        else:
+            defaultELConfig['use_ssl'] = es_config.get('ssl', False)
+            defaultELConfig['verify_certs'] = False
+            defaultELConfig['url_prefix'] = es_config.get('uri', '')
+            defaultELConfig['http_auth'] = auth
+        
+        es = elasticsearch.Elasticsearch([ defaultELConfig ],
             max_retries=5,
             retry_on_timeout=True
         )
@@ -299,13 +323,17 @@ class Broker:
         # This bit is required since ES 6.x and above don't like document types
         self.noTypes = True if int(es_info['version']['number'].split('.')[0]) >= 6 else False
         self.seven = True if int(es_info['version']['number'].split('.')[0]) >= 7 else False
+        self.eight = True if int(es_info['version']['number'].split('.')[0]) >= 8 else False
         if self.noTypes:
             pprint("This is a type-less DB, expanding database names instead.")
-            if self.seven:
+            if self.eight and auth is not None:
+                pprint("We're using ES >= 8.x, NO DOC_TYPE WITH BASIC_AUTH OPTIONS ")
+                es =  _KibbleESWrapperSeven(es, auth)
+            elif self.seven:
                 pprint("We're using ES >= 7.x, NO DOC_TYPE!")
-                es = KibbleESWrapperSeven(es)
+                es = _KibbleESWrapperSeven(es, None)
             else:
-                es = KibbleESWrapper(es)
+                es = _KibbleESWrapper(es)
             self.DB = es
             if not es.indices.exists(index = es_config['database'] + "_api"):
                 sys.stderr.write("Could not find database group %s_* in ElasticSearch!\n" % es_config['database'])

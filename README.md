@@ -14,7 +14,7 @@ The Kibble Scanners collect information for the Kibble Suite.
     usage: kibble-scanner.py [-h] [-o ORG] [-f CONFIG] [-a AGE] [-s SOURCE]
                              [-n NODES] [-t TYPE] [-e EXCLUDE [EXCLUDE ...]]
                              [-v VIEW]
-    
+
     optional arguments:
       -h, --help            show this help message and exit
       -o ORG, --org ORG     The organisation to gather stats for. If left out, all
@@ -75,7 +75,36 @@ The Kibble Scanners collect information for the Kibble Suite.
  - python3-certifi
  - python3-yaml
 
- 
+ ## Build environment
+
+### Pre-commit
+
+  After running
+
+    pip install -r requirements.txt
+
+  Run
+
+    pre-commit install
+
+  to install
+
+  Run it explicitely by
+
+    pre-commit
+
+  to run the checks in .pre-commit-config.yaml
+
+  If installed the pre-commit reads the configuration, and will check on the hooks, currently pre-comit and pre-push.
+  While the checks are not satisfied, just rerun the commit command until the hook checks are passed.
+
+### Testing
+
+  TBD
+
+### Project build
+
+  TBD
+
 # Get involved
   TBD. Please see https://kibble.apache.org/ for details!
-  

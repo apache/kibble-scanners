@@ -120,10 +120,10 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
             else:
                 pass
                 #print("Ticket hasn't changed, ignoring...")
-            
+
         if parseIt:
             KibbleBit.pprint("Parsing data from BugZilla for #%s" % key)
-            
+
             params = {
                 'ids':  [int(key)],
                 'limit': 0
@@ -132,7 +132,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                 params['Bugzilla_login'] = source['creds']['username']
                 params['Bugzilla_password'] = source['creds']['password']
             ticketsURL = "%s?method=Bug.get&params=[%s]" % (u, urllib.parse.quote(json.dumps(params)))
-            
+
             js = plugins.utils.jsonapi.get(ticketsURL)
             js= js['result']['bugs'][0]
             creator = {
@@ -162,17 +162,17 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
             ticketsURL = "%s?method=Bug.comments&params=[%s]" % (u, urllib.parse.quote(json.dumps(params)))
             hjs = plugins.utils.jsonapi.get(ticketsURL)
             comments = len(hjs['result']['bugs'][str(key)]['comments'])
-            
+
             title = bug['summary']
             del params['ids']
             if closer:
-                
+
                 pid = hashlib.sha1( ("%s%s" % (source['organisation'], closer['email'])).encode('ascii', errors='replace')).hexdigest()
                 found = KibbleBit.exists('person', pid)
                 if not found:
                     params['names'] = [closer['email']]
                     ticketsURL = "%s?method=User.get&params=[%s]" % (u, urllib.parse.quote(json.dumps(params)))
-                    
+
                     try:
                         ujs = plugins.utils.jsonapi.get(ticketsURL)
                         displayName = ujs['result']['users'][0]['real_name']
@@ -180,7 +180,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                         displayName = closer['email']
                     if displayName and len(displayName) > 0:
                         # Add to people db
-                        
+
                         jsp = {
                             'name': displayName,
                             'email': closer['email'],
@@ -189,7 +189,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                         }
                         #print("Updating person DB for closer: %s (%s)" % (displayName, closerEmail))
                         KibbleBit.index('person', pid, jsp)
-                    
+
             if creator:
                 pid = hashlib.sha1( ("%s%s" % (source['organisation'], creator['email'])).encode('ascii', errors='replace')).hexdigest()
                 found = KibbleBit.exists('person', pid)
@@ -204,7 +204,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                             creator['name'] = creator['email']
                     if creator['name'] and len(creator['name']) > 0:
                         # Add to people db
-                        
+
                         jsp = {
                             'name': creator['name'],
                             'email': creator['email'],
@@ -212,7 +212,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                             'id' :pid
                         }
                         KibbleBit.index('person', pid, jsp)
-                
+
             jso = {
                 'id': dhash,
                 'key': key,
@@ -223,7 +223,7 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
                 'created': cd,
                 'closed': rd,
                 'issuetype': 'issue',
-                'issueCloser': closer['email'] if 'email' in closer else None, 
+                'issueCloser': closer['email'] if 'email' in closer else None,
                 'createdDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(cd)),
                 'closedDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(rd)) if rd else None,
                 'changeDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(rd if rd else cd)),
@@ -238,8 +238,8 @@ def scanTicket(bug, KibbleBit, source, openTickets, u, dom):
     except Exception as err:
         KibbleBit.pprint(err)
         return False
-        
-    
+
+
 
 class bzThread(Thread):
 
@@ -252,10 +252,10 @@ class bzThread(Thread):
         self.openTickets = ot
         self.u = u
         self.dom = dom
-        
+
     def run(self):
         badOnes = 0
-        
+
         while len(self.pendingTickets) > 0 and badOnes <= 50:
             if len(self.pendingTickets) % 10 == 0:
                 self.KibbleBit.pprint("%u elements left to count" % len(self.pendingTickets))
@@ -284,13 +284,16 @@ class bzThread(Thread):
                     return
             else:
                 badOnes = 0
-                
+
 
 
 def scan(KibbleBit, source):
     path = source['sourceID']
     url = source['sourceURL']
-    
+
+    if not 'steps' in source:
+        source['steps'] = {}
+
     source['steps']['issues'] = {
         'time': time.time(),
         'status': 'Parsing BugZilla changes...',
@@ -298,7 +301,7 @@ def scan(KibbleBit, source):
         'good': True
     }
     KibbleBit.updateSource(source)
-    
+
     bz = re.match(r"(https?://\S+?)(/jsonrpc\.cgi)?[\s:?]+(.+)", url)
     if bz:
         if source['creds'] and 'username' in source['creds'] and source['creds']['username'] and len(source['creds']['username']) > 0:
@@ -313,10 +316,10 @@ def scan(KibbleBit, source):
         u = "%s/jsonrpc.cgi" % dom
         instance = bz.group(3)
         lastTicket = 0
-        
+
         params = {
             'product':  [instance],
-            'status': ["RESOLVED", "CLOSED", "NEW","UNCOMFIRMED","ASSIGNED","REOPENED","VERIFIED"], 
+            'status': ["RESOLVED", "CLOSED", "NEW","UNCOMFIRMED","ASSIGNED","REOPENED","VERIFIED"],
             'include_fields': ['id', 'creation_time', 'status', 'summary', 'creator'],
             'limit': 10000,
             'offset': 1
@@ -324,12 +327,12 @@ def scan(KibbleBit, source):
         # If * is requested, just omit the product name
         if instance == '*':
             params = {
-                'status': ["RESOLVED", "CLOSED", "NEW","UNCOMFIRMED","ASSIGNED","REOPENED","VERIFIED"], 
+                'status': ["RESOLVED", "CLOSED", "NEW","UNCOMFIRMED","ASSIGNED","REOPENED","VERIFIED"],
                 'include_fields': ['id', 'creation_time', 'status', 'summary', 'creator'],
                 'limit': 10000,
                 'offset': 1
                 }
-        
+
         ticketsURL = "%s?method=Bug.search&params=[%s]" % (u, urllib.parse.quote(json.dumps(params)))
 
         while True:
@@ -338,7 +341,7 @@ def scan(KibbleBit, source):
             except:
                 KibbleBit.pprint("Couldn't fetch more tickets, bailing")
                 break
-            
+
             if len(js['result']['bugs']) > 0:
                 KibbleBit.pprint("%s: Found %u tickets..." % (source['sourceURL'], ((params.get('offset', 1)-1) + len(js['result']['bugs']))))
                 for bug in js['result']['bugs']:
@@ -350,7 +353,7 @@ def scan(KibbleBit, source):
             else:
                 KibbleBit.pprint("No more tickets left to scan")
                 break
-            
+
         KibbleBit.pprint("Found %u open tickets, %u closed." % (len(openTickets), len(pendingTickets) - len(openTickets)))
 
         badOnes = 0
@@ -360,10 +363,10 @@ def scan(KibbleBit, source):
             t = bzThread(KibbleBit, source, block, pendingTickets, openTickets, u, dom)
             threads.append(t)
             t.start()
-        
+
         for t in threads:
             t.join()
-        
+
 
         source['steps']['issues'] = {
             'time': time.time(),

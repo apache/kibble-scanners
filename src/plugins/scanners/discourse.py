@@ -30,7 +30,7 @@ This is the Kibble Discourse scanner plugin.
 """
 
 title = "Scanner for Discourse Forums"
-version = "0.1.0"
+version = "0.1.1"
 
 def accepts(source):
     """ Determines whether we want to handle this source """
@@ -41,30 +41,30 @@ def accepts(source):
 
 def scanJob(KibbleBit, source, cat, creds):
     """ Scans a single discourse category for activity """
-    NOW = int(datetime.datetime.utcnow().timestamp())
-    
+    NOW = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
+
     # Get $discourseURL/c/$catID
-    
+
     catURL = os.path.join(source['sourceURL'], "c/%s" % cat['id'])
     KibbleBit.pprint("Scanning Discourse category '%s' at %s" % (cat['slug'], catURL))
-    
+
     page = 0
     allUsers = {}
-    
+
     # For each paginated result (up to page 100), check for changes
     while page < 100:
         pcatURL = "%s?page=%u" % (catURL, page)
         catjson = plugins.utils.jsonapi.get(pcatURL, auth = creds)
         page += 1
-    
-        
+
+
         if catjson:
-            
+
             # If we hit an empty list (no more topics), just break the loop.
             if not catjson['topic_list']['topics']:
                 break
-            
-            # First (if we have data), we should store the known users       
+
+            # First (if we have data), we should store the known users
             # Since discourse hides the email (obviously!), we'll have to
             # fake one to generate an account.
             fakeDomain = "foo.discourse"
@@ -75,7 +75,7 @@ def scanJob(KibbleBit, source, cat, creds):
                 # Fake email address, compute deterministic ID
                 email = "%s@%s" % (user['username'], fakeDomain)
                 dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], email) ).encode('ascii', errors='replace')).hexdigest()
-                
+
                 # Construct a very sparse user document
                 userDoc = {
                     'id': dhash,
@@ -83,29 +83,29 @@ def scanJob(KibbleBit, source, cat, creds):
                     'name': user['username'],
                     'email': email,
                 }
-                
+
                 # Store user-ID-to-username mapping for later
                 allUsers[user['id']] = userDoc
-                
+
                 # Store it (or, queue storage) unless it exists.
                 # We don't wanna override better data, so we check if
                 # it's there first.
                 if not KibbleBit.exists('person', dhash):
                     KibbleBit.append('person', userDoc)
-            
+
             # Now, for each topic, we'll store a topic document
             for topic in catjson['topic_list']['topics']:
-                
+
                 # Calculate topic ID
                 dhash = hashlib.sha224( ("%s-%s-topic-%s" % (source['organisation'], source['sourceURL'], topic['id']) ).encode('ascii', errors='replace')).hexdigest()
-                
+
                 # Figure out when topic was created and updated
                 CreatedDate = datetime.datetime.strptime(topic['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
                 if topic.get('last_posted_at'):
                     UpdatedDate = datetime.datetime.strptime(topic['last_posted_at'], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
                 else:
                     UpdatedDate = 0
-                
+
                 # Determine whether we should scan this topic or continue to the next one.
                 # We'll do this by seeing if the topic already exists and has no changes or not.
                 if KibbleBit.exists('forum_topic', dhash):
@@ -113,14 +113,14 @@ def scanJob(KibbleBit, source, cat, creds):
                     # If update in the old doc was >= current update timestamp, skip the topic
                     if fdoc['updated'] >= UpdatedDate:
                         continue
-                
-                
+
+
                 # Assuming we need to scan this, start by making the base topic document
                 topicdoc = {
                     'id': dhash,
                     'sourceID': source['sourceID'],
                     'organisation': source['organisation'],
-                    
+
                     'type': 'discourse',
                     'category': cat['slug'],
                     'title': topic['title'],
@@ -134,23 +134,23 @@ def scanJob(KibbleBit, source, cat, creds):
                     'views': topic['views'],
                     'url': source['sourceURL'] + "/t/%s/%s" % (topic['slug'], topic['id'])
                 }
-                
+
                 KibbleBit.append('forum_topic', topicdoc)
                 KibbleBit.pprint("%s is new or changed, scanning" % topicdoc['url'])
-                
+
                 # Now grab all the individual replies/posts
                 # Remember to not have it count as a visit!
                 pURL = "%s?track_visit=false&forceLoad=true" % topicdoc['url']
                 pjson = plugins.utils.jsonapi.get(pURL, auth = creds)
-                
+
                 posts = pjson['post_stream']['posts']
-                
+
                 # For each post/reply, construct a forum_entry document
                 KibbleBit.pprint("%s has %u posts" % (pURL, len(posts)))
                 for post in posts:
                     phash = hashlib.sha224( ("%s-%s-post-%s" % (source['organisation'], source['sourceURL'], post['id']) ).encode('ascii', errors='replace')).hexdigest()
                     uname = post.get('name', post['username']) or post['username'] # Hack to get longest non-zero value
-                    
+
                     # Find the hash of the person who posted it
                     # We may know them, or we may have to store them.
                     # If we have better info now (full name), re-store
@@ -160,7 +160,7 @@ def scanJob(KibbleBit, source, cat, creds):
                         # Same as before, fake email, store...
                         email = "%s@%s" % (post['username'], fakeDomain)
                         uhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], email) ).encode('ascii', errors='replace')).hexdigest()
-                        
+
                         # Construct a very sparse user document
                         userDoc = {
                             'id': uhash,
@@ -168,22 +168,22 @@ def scanJob(KibbleBit, source, cat, creds):
                             'name': uname,
                             'email': email,
                         }
-                        
+
                         # Store user-ID-to-username mapping for later
                         allUsers[user['id']] = userDoc
-                        
+
                         # Store it (or, queue storage)
                         KibbleBit.append('person', userDoc)
-                    
+
                     # Get post date
                     CreatedDate = datetime.datetime.strptime(post['created_at'], "%Y-%m-%dT%H:%M:%S.%fZ").timestamp()
-                    
+
                     # Store the post/reply document
                     pdoc = {
                         'id': phash,
                         'sourceID': source['sourceID'],
                         'organisation': source['organisation'],
-                        
+
                         'type': 'discourse',
                         'creator': uhash,
                         'created': CreatedDate,
@@ -209,7 +209,7 @@ class discourseThread(threading.Thread):
         self.creds = creds
         self.source = source
         self.jobs = jobs
-        
+
     def run(self):
         badOnes = 0
         while len(self.jobs) > 0 and badOnes <= 50:
@@ -243,7 +243,9 @@ def scan(KibbleBit, source):
     # Simple URL check
     discourse = re.match(r"(https?://.+)", source['sourceURL'])
     if discourse:
-        
+        if not 'steps' in source:
+            source['steps'] = {}
+
         source['steps']['forum'] = {
             'time': time.time(),
             'status': 'Parsing Discourse topics...',
@@ -251,7 +253,7 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         badOnes = 0
         pendingJobs = []
         KibbleBit.pprint("Parsing Discourse activity at %s" % source['sourceURL'])
@@ -262,22 +264,22 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         # Discourse may neeed credentials (if basic auth)
         creds = None
         if source['creds'] and 'username' in source['creds'] and source['creds']['username'] and len(source['creds']['username']) > 0:
             creds = "%s:%s" % (source['creds']['username'], source['creds']['password'])
-            
+
         # Get the list of categories
         sURL = source['sourceURL']
         KibbleBit.pprint("Getting categories...")
         catjs = plugins.utils.jsonapi.get("%s/categories_and_latest" % sURL , auth = creds)
-        
+
         # Directly assign the category list as pending jobs queue, ezpz.
         pendingJobs = catjs['category_list']['categories']
-        
+
         KibbleBit.pprint("Found %u categories" % len(pendingJobs))
-        
+
         # Now fire off 4 threads to parse the categories
         threads = []
         block = threading.Lock()
@@ -286,11 +288,11 @@ def scan(KibbleBit, source):
             t = discourseThread(block, KibbleBit, source, creds, pendingJobs)
             threads.append(t)
             t.start()
-        
+
         for t in threads:
             t.join()
 
-        # We're all done, yaay        
+        # We're all done, yaay
         KibbleBit.pprint("Done scanning %s" % source['sourceURL'])
 
         source['steps']['forum'] = {
@@ -300,4 +302,3 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-    

@@ -215,10 +215,10 @@ class KibbleBit:
                     'doc_as_upsert': True,
                 })
         try:
-            #print("Bulk insert JSON %s." % js_arr)
             res = elasticsearch.helpers.bulk(self.broker.oDB, js_arr)
-            print("Result bulk: ", res)
+            print("Result (success,failed): ", res)
         except Exception as err:
+            print("Error for INPUT JSON %s." % js_arr)
             pprint("Warning: Could not bulk insert: %s" % err)
             self.traceBack()
 

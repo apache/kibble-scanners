@@ -28,8 +28,8 @@ import plugins.scanners
 import plugins.brokers.kibbleES
 #import plugins.kibbleJSON
 
-VERSION = "0.1.0"
-CONFIG_FILE = "conf/config.yaml"
+VERSION = "0.2.0"
+CONFIG_FILE = "../conf/config.yaml"
 PENDING_OBJECTS = []
 BIG_LOCK = threading.Lock()
 
@@ -43,15 +43,16 @@ def base_parser():
     arg_parser.add_argument("-t", "--type", help="Specific type of scanner to run (default is run all scanners)")
     arg_parser.add_argument("-e", "--exclude", nargs = '+', help="Specific type of scanner(s) to exclude")
     arg_parser.add_argument("-v", "--view", help="Specific source view to scan (default is scan all sources)")
+    arg_parser.add_argument("-j", "--filter", nargs='+', help="Jenkins-only: Filter the list of jobs (e.g. for debugging). To drill down to the target jobs, all nodes to the leaf node(s) are required, e.g --filter <project> <jobgroup> <targetjob1> <targetjob2>. Type is set to jenkins implicitely.")
     return arg_parser
-   
+
 def pprint(string, err = False):
     line = "[core]: %s" % (string)
     if err:
         sys.stderr.write(line + "\n")
     else:
         print(line)
-        
+
 
 def isMine(ID, config):
     if config['scanner'].get('balance',  None):
@@ -65,11 +66,11 @@ def isMine(ID, config):
             return True
         return False
     return True
-    
+
 class scanThread(threading.Thread):
     """ A thread object that grabs an item from the queue and processes
         it, using whatever plugins will come out to play. """
-    def __init__(self, broker, org, i, t = None, e = None):
+    def __init__(self, broker, org, i, t = None, e = None, f= None):
         super(scanThread, self).__init__()
         self.broker = broker
         self.org = org
@@ -77,8 +78,12 @@ class scanThread(threading.Thread):
         self.bit = self.broker.bitClass(self.broker, self.org, i)
         self.stype = t
         self.exclude = e
+        self.filter = f
+        # override
+        if self.filter:
+            self.stype = "jenkins"
         pprint("Initialized thread %i" % i)
-    
+
     def run(self):
         global BIG_LOCK, PENDING_OBJECTS
         time.sleep(0.5) # Primarily to align printouts.
@@ -89,6 +94,7 @@ class scanThread(threading.Thread):
             try:
                 # Try grabbing an object (might not be any left!)
                 obj = PENDING_OBJECTS.pop(0)
+                #print("object: %s" %(obj))
             except:
                 pass
             BIG_LOCK.release()
@@ -97,14 +103,17 @@ class scanThread(threading.Thread):
                 if isMine(obj['sourceID'], self.broker.config):
                     # Run through list of scanners in order, apply when useful
                     for sid, scanner in plugins.scanners.enumerate():
-                        
+
                         if scanner.accepts(obj):
                             self.bit.pluginname = "plugins/scanners/" + sid
                             # Excluded scanner type?
                             if self.exclude and sid in self.exclude:
                                 continue
+                            # specific jenkins filter
+                            if self.stype and self.stype == sid and self.filter and sid == "jenkins":
+                                scanner.scan(self.bit, obj, self.filter)
                             # Specific scanner type or no types mentioned?
-                            if not self.stype or self.stype == sid:
+                            elif not self.stype or self.stype == sid:
                                 scanner.scan(self.bit, obj)
             else:
                 break
@@ -115,13 +124,13 @@ def main():
     pprint("Kibble Scanner v/%s starting" % VERSION)
     global CONFIG_FILE, PENDING_OBJECTS
     args = base_parser().parse_args()
-    
+
     # Load config yaml
     if args.config:
         CONFIG_FILE = args.config
     config = yaml.load(open(CONFIG_FILE), Loader=yaml.Loader)
     pprint("Loaded YAML config from %s" % CONFIG_FILE)
-    
+
     # Which broker type do we use here?
     broker = None
     if 'elasticsearch' in config and config['elasticsearch'].get('enabled', False):
@@ -130,14 +139,14 @@ def main():
     else:
         pprint("Using HTTP JSON broker model")
         broker = plugins.brokers.kibbleJSON.Broker(config)
-    
+
     orgNo = 0
     sourceNo = 0
     for org in broker.organisations():
         if not args.org or args.org == org.id:
             pprint("Processing organisation %s" % org.id)
             orgNo += 1
-            
+
             # Compile source list
             # If --age is passed, only append source that either
             # have never been scanned, or have been scanned more than
@@ -161,21 +170,21 @@ def main():
                     if not args.source or (args.source == source['sourceID']) or (args.source == source['sourceURL']):
                         PENDING_OBJECTS.append(source)
                 sourceNo += len(PENDING_OBJECTS)
-            
+
             # Start up some threads equal to number of cores on the box,
             # but no more than 4. We don't want an IOWait nightmare.
             threads = []
             core_count = min((4, int( multiprocessing.cpu_count() )))
             for i in range(0, core_count):
-                sThread = scanThread(broker, org, i+1, args.type, args.exclude)
+                sThread = scanThread(broker, org, i+1, args.type, args.exclude, args.filter)
                 sThread.start()
                 threads.append(sThread)
-            
+
             # Wait for them all to finish.
             for t in threads:
                 t.join()
-        
+
     pprint("All done scanning for now, found %i organisations and %i sources to process." % (orgNo, sourceNo))
-    
+
 if __name__ == '__main__':
     main()

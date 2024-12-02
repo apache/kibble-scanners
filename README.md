@@ -7,7 +7,7 @@ The Kibble Scanners collect information for the Kibble Suite.
 
 ## How to run:
 
- - On a daily/weekly/whatever basis, run: `python3 src/kibble-scanner.py`.
+ - On a daily/weekly/whatever basis, run in folder src: `python3 kibble-scanner.py`.
 
 ### Command line options:
 

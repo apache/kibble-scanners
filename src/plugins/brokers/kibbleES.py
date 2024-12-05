@@ -109,6 +109,7 @@ class _KibbleESWrapperSeven(object):
 
         def exists(self, index):
             return self.ES.indices.exists(index = index)
+            
 
 
 

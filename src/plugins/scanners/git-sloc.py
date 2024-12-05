@@ -16,19 +16,17 @@
 # limitations under the License.
 
 """ Source Lines of Code counter for Git """
-
-
+import importlib
 import os
 import sys
 import subprocess
 import time
 import shutil
-import plugins.utils.git
-import plugins.utils.sloc
+
 import re
 
 title = "SloC Counter for Git"
-version = "0.1.0"
+version = "0.1.1"
 
 def accepts(source):
     """ Do we accept this source? """
@@ -40,12 +38,15 @@ def accepts(source):
     return False
 
 def scan(KibbleBit, source):
-    
+
     rid = source['sourceID']
     url = source['sourceURL']
     rootpath = "%s/%s/git" % (KibbleBit.config['scanner']['scratchdir'], source['organisation'])
     gpath = os.path.join(rootpath, rid)
-    
+
+    if not 'steps' in source:
+        source['steps'] = {}
+
     if source['steps']['sync']['good'] and os.path.exists(gpath):
         source['steps']['count'] = {
                 'time': time.time(),
@@ -54,17 +55,19 @@ def scan(KibbleBit, source):
                 'good': True,
             }
         KibbleBit.updateSource(source)
-        
+
+        git = importlib.import_module("plugins.utils.git")
         try:
-            branch = plugins.utils.git.defaultBranch(source, gpath)
+            branch = git.defaultBranch(source, gpath)
             subprocess.call('cd %s && git checkout %s' % (gpath, branch), shell = True)
         except:
             KibbleBit.pprint("SLoC counter failed to find main branch for %s!!" % url)
             return False
-        
+
         KibbleBit.pprint("Running SLoC count for %s" % url)
-        languages, codecount, comment, blank, years, cost = plugins.utils.sloc.count(gpath)
-        
+        sloc = importlib.import_module("plugins.utils.sloc")
+        languages, codecount, comment, blank, years, cost = sloc.count(gpath)
+
         sloc = {
             'sourceID': source['sourceID'],
             'loc': codecount,

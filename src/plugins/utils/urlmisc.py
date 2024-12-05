@@ -18,6 +18,7 @@
 """
 This is a Kibble miscellaneous URL functions plugin.
 """
+import base64
 import urllib.request
 import gzip
 import tempfile
@@ -53,9 +54,8 @@ def unzip(url, creds = None, cookie = None):
         if err.code != 404 and err.code != 401:
             tmpfile = tempfile.NamedTemporaryFile(mode='w+b', buffering=1, delete=False)
             subprocess.check_call(("/usr/bin/wget", "-O", tmpfile.name, url))
-            
+
             try:
-                te
                 compressedFile = open("/tmp/kibbletmp.gz", 'rb')
                 if (compressedFile.read(2) == '\x1f\x8b'):
                     compressedFile.seek(0)

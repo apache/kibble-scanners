@@ -154,6 +154,9 @@ def status_changed(stored_change, change):
     return stored_change['status'] != change['status']
 
 def scan(KibbleBit, source):
+    if not 'steps' in source:
+        source['steps'] = {}
+
     source['steps']['issues'] = {
         'time': time.time(),
         'status': 'Analyzing Gerrit tickets...',
@@ -226,7 +229,7 @@ def scan(KibbleBit, source):
 
         except requests.HTTPError as e:
             print(e)
-            
+
     source['steps']['issues'] = {
         'time': time.time(),
         'status': 'Done analyzing tickets!',

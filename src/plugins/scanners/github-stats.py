@@ -14,14 +14,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-
+import hashlib
+import importlib
 import os
+import re
 import sys
 import subprocess
 import time
 import shutil
-import plugins.utils.git
+
+from src.plugins.brokers.kibbleES import KibbleBit
 
 title = "Traffic statistics plugin for GitHub repositories"
 version = "0.1.0"
@@ -31,17 +33,17 @@ def accepts(source):
     if source['type'] == 'github':
         return True
     return False
-    
+
 def getTime(string):
     """ Convert GitHub timestamp to epoch """
     return time.mktime(time.strptime(re.sub(r"Z", "", str(string)), "%Y-%m-%dT%H:%M:%S"))
 
 def scan(KibbletBit, source):
-    
+
     # Get some vars, construct a data path for the repo
     path = source['sourceID']
     url = source['sourceURL']
-    
+
     auth=None
     people = {}
     if 'creds' in source:
@@ -60,12 +62,14 @@ def scan(KibbletBit, source):
             'good': True
         }
         KibbletBit.updateSource(source)
-        
+
         # Get views
-        views = plugins.utils.github.views(url, auth)
+        github = importlib.import_module("plugins.utils.github")
+        views = github.views(url, auth)
         if 'views' in views:
             for el in views['views']:
                 ts = getTime(el['timestamp'])
+                #print("reformatted time:", ts)
                 shash = hashlib.sha224( ("%s-%s-%s-clones" %(source['organisation'], url, el['timestamp'])).encode('ascii', errors = 'replace')).hexdigest()
                 bit = {
                     'organisation': source['organisation'],
@@ -78,9 +82,9 @@ def scan(KibbletBit, source):
                     'id': shash
                 }
                 KibbleBit.append('ghstats', bit)
-                
+
         # Get clones
-        clones = plugins.utils.github.clones(url, auth)
+        clones = github.clones(url, auth)
         if 'clones' in clones:
             for el in clones['clones']:
                 ts = getTime(el['timestamp'])
@@ -96,12 +100,12 @@ def scan(KibbletBit, source):
                     'id': shash
                 }
                 KibbleBit.append('ghstats', bit)
-                
+
         # Get referrers
-        refs = plugins.utils.github.referrers(url, auth)
+        refs = github.referrers(url, auth)
         if refs:
             for el in refs:
-                el['timestamp'] = time.strftime("%Y-%m-%dT%H:%M:%S", time.time())
+                el['timestamp'] = time.strftime("%Y-%m-%dT%H:%M:%S", time)
                 ts = getTime(el['timestamp'])
                 shash = hashlib.sha224( ("%s-%s-%s-refs" %(source['organisation'], url, el['timestamp'])).encode('ascii', errors = 'replace')).hexdigest()
                 bit = {
@@ -118,4 +122,3 @@ def scan(KibbletBit, source):
     except:
         pass
         # All done!
-        

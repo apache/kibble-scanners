@@ -15,16 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 import os
 import sys
 import subprocess
 import time
 import shutil
-import plugins.utils.git
+
+import plugins.utils.git as git
 
 title = "Sync plugin for Git repositories"
-version = "0.1.2"
+version = "0.1.3"
 
 def accepts(source):
     """ Do we accept this source? """
@@ -34,15 +34,15 @@ def accepts(source):
     if source['type'] == 'github' and source.get('issuesonly', False) == False:
         return True
     return False
-    
+
 def scan(KibbleBit, source):
-    
+
     #KibbleBit.pprint("Scan source: %s." % source)
     # Get some vars, construct a data path for the repo
     path = source['sourceID']
     url = source['sourceURL']
     rootpath = "%s/%s/git" % (KibbleBit.config['scanner']['scratchdir'], source['organisation'])
-    
+
     # If the root path does not exist, try to make it recursively.
     if not os.path.exists(rootpath):
         try:
@@ -57,14 +57,14 @@ def scan(KibbleBit, source):
             }
             KibbleBit.updateSource(source)
             return
-    
+
     # This is were the repo should be cloned
     datapath = os.path.join(rootpath, path)
-    
+
     KibbleBit.pprint("Checking out %s as %s" % (url, path))
 
     try:
-        if 'steps' not in source: # initial fetch of a github repo may miss steps 
+        if 'steps' not in source: # initial fetch of a github repo may miss steps
             source['steps'] = {}
         source['steps']['sync'] = {
             'time': time.time(),
@@ -73,13 +73,13 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         # If we already checked this out earlier, just sync it.
         if os.path.exists(datapath):
             KibbleBit.pprint("Repo %s exists, fetching changes..." % datapath)
-            
+
             # Do we have a default branch here?
-            branch = plugins.utils.git.defaultBranch(source, datapath, KibbleBit)
+            branch = git.defaultBranch(source, datapath, KibbleBit)
             if len(branch) == 0:
                 source['default_branch'] = branch
                 source['steps']['sync'] = {
@@ -113,7 +113,7 @@ def scan(KibbleBit, source):
                         fcommit = fcommit.decode('ascii').strip()
                         subprocess.check_call("cd %s && git reset --hard %s" % (datapath, fcommit), shell = True, stderr=subprocess.STDOUT)
                         try:
-                            subprocess.check_call("cd %s && git clean -xfd" % datpath, shell = True, stderr=subprocess.STDOUT)
+                            subprocess.check_call("cd %s && git clean -xfd" % datapath, shell = True, stderr=subprocess.STDOUT)
                         except:
                             pass
         # This is a new repo, clone it!
@@ -133,7 +133,7 @@ def scan(KibbleBit, source):
         }
         KibbleBit.updateSource(source)
         return
-    
+
     # All good, yay!
     source['steps']['sync'] = {
             'time': time.time(),
@@ -142,4 +142,3 @@ def scan(KibbleBit, source):
             'good': True
         }
     KibbleBit.updateSource(source)
-    

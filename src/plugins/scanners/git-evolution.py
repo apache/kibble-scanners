@@ -16,14 +16,13 @@
 # limitations under the License.
 
 """ Git Evolution scanner """
+import importlib
 import os
 import subprocess
-import re
 import time
 import calendar
 import datetime
-import plugins.utils.git
-import plugins.utils.sloc
+
 import hashlib
 from collections import namedtuple
 
@@ -68,7 +67,7 @@ def release(KibbleBit, source, status, exception=None, good=False):
     if exception:
         source['steps']['evolution'].update({'exception': exception})
     KibbleBit.updateSource(source)
-    
+
 
 def check_branch(gpath, date, branch):
     try:
@@ -114,48 +113,48 @@ def find_branch(date, gpath):
 
 
 def scan(KibbleBit, source):
-    
+
     rid = source['sourceID']
     url = source['sourceURL']
     rootpath = "%s/%s/git" % (KibbleBit.config['scanner']['scratchdir'], source['organisation'])
     gpath = os.path.join(rootpath, rid)
-    
+
     gname = source['sourceID']
     KibbleBit.pprint("Doing evolution scan of %s" % gname)
-    
+
     inp = get_first_ref(gpath)
     if inp:
         ts = int(inp.split()[0])
         ts = ts - (ts % 86400)
         date = time.strftime("%Y-%b-%d 0:00", time.gmtime(ts))
-    
+
         #print("Starting from %s" % date)
         now = time.time()
-    
+
         rid = source['sourceID']
         url = source['sourceURL']
         rootpath = "%s/%s/git" % (KibbleBit.config['scanner']['scratchdir'], source['organisation'])
         gpath = os.path.join(rootpath, rid)
-        
+
         if source['steps']['sync']['good'] and os.path.exists(gpath):
             acquire(KibbleBit, source)
             branch = find_branch(date, gpath)
-    
+
             if not branch:
                 release(source, "Could not do evolutionary scan of code",
                         "No default branch was found in this repository")
                 return
-    
+
             branch_exists = check_branch(gpath, date, branch)
-    
+
             if not branch_exists:
                 KibbleBit.pprint("Not trunk either (bad repo?), skipping")
                 release(source, "Could not do evolutionary scan of code",
                         "No default branch was found in this repository")
                 return
-    
+
             try:
-    
+
                 d = time.gmtime(now)
                 year = d[0]
                 quarter = d[1] - (d[1] % 3)
@@ -166,7 +165,7 @@ def scan(KibbleBit, source):
                     pd = datetime.datetime(year, quarter, 1).replace(tzinfo=datetime.timezone.utc).timetuple()
                     date = time.strftime("%Y-%b-%d 0:00", pd)
                     unix =  calendar.timegm(pd)
-    
+
                     # Skip the dates we've already processed
                     dhash = hashlib.sha224((source['sourceID'] + date).encode('ascii',
                                                                         'replace')).hexdigest()
@@ -174,7 +173,8 @@ def scan(KibbleBit, source):
                     if not found:
                         checkout(gpath, date, branch)
                         KibbleBit.pprint("Running cloc on %s (%s) at %s" % (gname, source['sourceURL'], date))
-                        languages, codecount, comment, blank, years, cost = plugins.utils.sloc.count(gpath)
+                        sloc = importlib.import_module("plugins.utils.sloc")
+                        languages, codecount, comment, blank, years, cost = sloc.count(gpath)
                         js = {
                             'time': unix,
                             'sourceID': source['sourceID'],
@@ -192,7 +192,7 @@ def scan(KibbleBit, source):
                     if quarter <= 0:
                         quarter += 12
                         year -= 1
-                        
+
                     # decrease month by 3
                     now = time.mktime(datetime.date(year, quarter, 1).timetuple())
             except Exception as e:
@@ -201,9 +201,7 @@ def scan(KibbleBit, source):
                         time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
                         str(e))
                 return
-    
+
             release(KibbleBit, source, "Evolution scan completed at " +
                     time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
                     good=True)
-
-    

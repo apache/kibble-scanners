@@ -30,7 +30,7 @@ This is the Kibble Buildbot scanner plugin.
 """
 
 title = "Scanner for Buildbot"
-version = "0.1.0"
+version = "0.1.1"
 
 def accepts(source):
     """ Determines whether we want to handle this source """
@@ -41,17 +41,17 @@ def accepts(source):
 
 def scanJob(KibbleBit, source, job, creds):
     """ Scans a single job for activity """
-    NOW = int(datetime.datetime.utcnow().timestamp())
+    NOW = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
     dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceID'], job) ).encode('ascii', errors='replace')).hexdigest()
     found = True
     doc= None
     parseIt = False
     found = KibbleBit.exists('cijob', dhash)
-    
+
     jobURL = "%s/api/v2/builders/%s/builds" % (source['sourceURL'], job)
     KibbleBit.pprint(jobURL)
     jobjson = plugins.utils.jsonapi.get(jobURL, auth = creds)
-    
+
     # If valid JSON, ...
     if jobjson:
         for buildno, data in jobjson.items():
@@ -61,16 +61,16 @@ def scanJob(KibbleBit, source, job, creds):
                 builddoc = KibbleBit.get('ci_build', buildhash)
             except:
                 pass
-            
+
             # If this build already completed, no need to parse it again
             if builddoc and builddoc.get('completed', False):
                 continue
-            
+
             KibbleBit.pprint("[%s-%s] This is new or pending, analyzing..." % (job, buildno))
-            
+
             completed = True if 'currentStep' in data else False
-            
-            
+
+
             # Get build status (success, failed, canceled etc)
             status = 'building'
             if 'successful' in data.get('text', []):
@@ -79,7 +79,7 @@ def scanJob(KibbleBit, source, job, creds):
                 status = 'failed'
             if 'exception' in data.get('text', []):
                 status = 'aborted'
-            
+
             DUR = 0
             # Calc when the build finished
             if completed and len(data.get('times', [])) == 2 and data['times'][1]:
@@ -87,7 +87,7 @@ def scanJob(KibbleBit, source, job, creds):
                 DUR = FIN  - data['times'][0]
             else:
                 FIN = 0
-                
+
             doc = {
                 # Build specific data
                 'id': buildhash,
@@ -100,7 +100,7 @@ def scanJob(KibbleBit, source, job, creds):
                 'status': status,
                 'started': int(data['times'][0]),
                 'ci': 'buildbot',
-                
+
                 # Standard docs values
                 'sourceID': source['sourceID'],
                 'organisation': source['organisation'],
@@ -109,7 +109,7 @@ def scanJob(KibbleBit, source, job, creds):
             KibbleBit.append('ci_build', doc)
         # Yay, it worked!
         return True
-    
+
     # Boo, it failed!
     KibbleBit.pprint("Fetching job data failed!")
     return False
@@ -124,7 +124,7 @@ class buildbotThread(threading.Thread):
         self.creds = creds
         self.source = source
         self.jobs = jobs
-        
+
     def run(self):
         badOnes = 0
         while len(self.jobs) > 0 and badOnes <= 50:
@@ -158,7 +158,9 @@ def scan(KibbleBit, source):
     # Simple URL check
     buildbot = re.match(r"(https?://.+)", source['sourceURL'])
     if buildbot:
-        
+        if not 'steps' in source:
+            source['steps'] = {}
+
         source['steps']['ci'] = {
             'time': time.time(),
             'status': 'Parsing Buildbot job changes...',
@@ -166,7 +168,7 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         badOnes = 0
         pendingJobs = []
         KibbleBit.pprint("Parsing Buildbot activity at %s" % source['sourceURL'])
@@ -177,22 +179,22 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
-        # Buildbot may neeed credentials
+
+        # Buildbot may need credentials
         creds = None
         if source['creds'] and 'username' in source['creds'] and source['creds']['username'] and len(source['creds']['username']) > 0:
             creds = "%s:%s" % (source['creds']['username'], source['creds']['password'])
-            
+
         # Get the job list
         sURL = source['sourceURL']
         KibbleBit.pprint("Getting job list...")
         builders = plugins.utils.jsonapi.get("%s/api/v2/builders" % sURL , auth = creds)
-        
+
         # Save queue snapshot
-        NOW = int(datetime.datetime.utcnow().timestamp())
+        NOW = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
         queuehash = hashlib.sha224( ("%s-%s-queue-%s" % (source['organisation'], source['sourceID'], int(time.time())) ).encode('ascii', errors='replace')).hexdigest()
-        
-        
+
+
         # Scan queue items
         blocked = 0
         stuck = 0
@@ -202,7 +204,7 @@ def scan(KibbleBit, source):
         actualQueueSize = 0
         building = 0
         jobs = []
-        
+
         for builder, data in builders.items():
             jobs.append(builder)
             if data['state'] == 'building':
@@ -217,8 +219,8 @@ def scan(KibbleBit, source):
                 # Stuck builds (iow no builder available)
                 if data['state'] == 'offline':
                     stuck += data.get('pendingBuilds', 0)
-            
-        
+
+
         # Write up a queue doc
         queuedoc = {
             'id': queuehash,
@@ -229,16 +231,16 @@ def scan(KibbleBit, source):
             'stuck': stuck,
             'building': building,
             'ci': 'buildbot',
-            
+
             # Standard docs values
             'sourceID': source['sourceID'],
             'organisation': source['organisation'],
             'upsert': True,
         }
         KibbleBit.append('ci_queue', queuedoc)
-        
+
         KibbleBit.pprint("Found %u builders in Buildbot" % len(jobs))
-        
+
         threads = []
         block = threading.Lock()
         KibbleBit.pprint("Scanning jobs using 4 sub-threads")
@@ -246,11 +248,11 @@ def scan(KibbleBit, source):
             t = buildbotThread(block, KibbleBit, source, creds, jobs)
             threads.append(t)
             t.start()
-        
+
         for t in threads:
             t.join()
 
-        # We're all done, yaay        
+        # We're all done, yaay
         KibbleBit.pprint("Done scanning %s" % source['sourceURL'])
 
         source['steps']['ci'] = {
@@ -260,4 +262,3 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-    

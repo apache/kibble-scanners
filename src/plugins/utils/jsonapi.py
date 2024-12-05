@@ -40,6 +40,7 @@ def get(url, cookie = None, auth = None, token = None, retries = 5, timeout = 30
         headers["Authorization"] = "token %s" % token
     if cookie:
         headers["Cookie"] = cookie
+    # print("fetching url %s" % url)
     rv = requests.get(url, headers = headers, timeout = (CONNECT_TIMEOUT, timeout))
     # Some services may be rate limited. We'll try sleeping it off in 60 second
     # intervals for a max of five minutes, then give up.
@@ -85,4 +86,3 @@ def post(url, data, cookie = None, auth = None):
     rv = requests.post(url, headers = headers, json = data)
     js = rv.json()
     return js
-

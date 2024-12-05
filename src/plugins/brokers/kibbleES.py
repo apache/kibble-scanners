@@ -20,6 +20,7 @@ import elasticsearch
 import elasticsearch.helpers
 import threading
 import sys
+import traceback
 
 KIBBLE_DB_VERSION = 2  # Current DB struct version
 ACCEPTED_DB_VERSIONS = [1,2]  # Versions we know how to work with.
@@ -33,7 +34,7 @@ class _KibbleESWrapper(object):
     def __init__(self, ES):
         self.ES = ES
         self.indices = self.indicesClass(ES)
-    
+
     def get(self, index, doc_type, id):
         return self.ES.get(index = index+'_'+doc_type, doc_type = '_doc', id = id)
     def exists(self, index, doc_type, id):
@@ -57,12 +58,12 @@ class _KibbleESWrapper(object):
             doc_type = '_doc',
             body = body
             )
-    
+
     class indicesClass(object):
         """ Indices helper class """
         def __init__(self, ES):
             self.ES = ES
-            
+
         def exists(self, index):
             return self.ES.indices.exists(index = index)
 
@@ -76,9 +77,9 @@ class _KibbleESWrapperSeven(object):
             self.ES = ES.options(basic_auth=auth)
         else:
             self.ES = ES
- 
+
         self.indices = self.indicesClass(ES)
-    
+
     def get(self, index, doc_type, id):
         return self.ES.get(index = index+'_'+doc_type, id = id)
     def exists(self, index, doc_type, id):
@@ -100,15 +101,16 @@ class _KibbleESWrapperSeven(object):
             index = index+'_'+doc_type,
             body = body
             )
-    
+
     class indicesClass(object):
         """ Indices helper class """
         def __init__(self, ES):
             self.ES = ES
-            
+
         def exists(self, index):
             return self.ES.indices.exists(index = index)
             
+
 
 
 # This is redundant, refactor later?
@@ -121,7 +123,7 @@ def pprint(string, err = False):
 
 class KibbleBit:
     """ KibbleBit class with direct ElasticSearch access """
-    
+
     def __init__(self, broker, organisation, tid):
         self.config = broker.config
         self.organisation = organisation
@@ -131,20 +133,20 @@ class KibbleBit:
         self.pluginname = ""
         self.tid = tid
         self.dbname = self.broker.config['elasticsearch']['database']
-    
+
     def __del__(self):
         """ On unload/delete, push the last chunks of data to ES """
         if self.json_queue:
             print("Pushing stragglers")
             self.bulk()
-            
+
     def pprint(self,  string, err = False):
         line = "[thread#%i:%s]: %s" % (self.tid, self.pluginname, string)
         if err:
             sys.stderr.write(line + "\n")
         else:
             print(line)
-        
+
     def updateSource(self, source):
         """ Updates a source document, usually with a status update """
         self.broker.DB.index(index=self.broker.config['elasticsearch']['database'],
@@ -152,23 +154,23 @@ class KibbleBit:
             id=source['sourceID'],
             body = source
         )
-        
+
     def get(self, doctype, docid):
         """ Fetches a document from the DB """
         doc = self.broker.DB.get(index=self.broker.config['elasticsearch']['database'], doc_type=doctype, id = docid)
         if doc:
             return doc['_source']
         return None
-    
+
     def exists(self, doctype, docid):
         """ Checks whether a document already exists or not """
         return self.broker.DB.exists(index=self.broker.config['elasticsearch']['database'], doc_type=doctype, id = docid)
-    
+
     def index(self, doctype, docid, document):
         """ Adds a new document to the index """
         dbname = self.broker.config['elasticsearch']['database']
-        self.broker.DB.index(index=dbname, doc_type = doctype, id = docid, body = document)        
-        
+        self.broker.DB.index(index=dbname, doc_type = doctype, id = docid, body = document)
+
     def append(self, t, doc):
         """ Append a document to the bulk push queue """
         if not 'id' in doc:
@@ -180,7 +182,7 @@ class KibbleBit:
         if len(self.json_queue) > self.queueMax:
             pprint("Bulk push forced")
             self.bulk()
-        
+
     def bulk(self):
         """ Push pending JSON objects in the queue to ES"""
         xjson = self.json_queue
@@ -193,6 +195,7 @@ class KibbleBit:
             dbname = self.broker.config['elasticsearch']['database']
             if self.broker.noTypes:
                 dbname += "_%s" % js['doctype']
+                #del doc['doctype']
                 defaultJSON = {
                     '_op_type': 'update' if js.get('upsert') else 'index',
                     '_index': dbname,
@@ -213,28 +216,30 @@ class KibbleBit:
                     'doc_as_upsert': True,
                 })
         try:
-            elasticsearch.helpers.bulk(self.broker.oDB, js_arr)
+            res = elasticsearch.helpers.bulk(self.broker.oDB, js_arr)
+            print("Result (success,failed): ", res)
         except Exception as err:
+            print("Error for INPUT JSON %s." % js_arr)
             pprint("Warning: Could not bulk insert: %s" % err)
             self.traceBack()
-            
+
     def traceBack(self):
         err_type, err_value, tb = sys.exc_info()
         traceback_output = ['API traceback:']
         traceback_output += traceback.format_tb(tb)
         traceback_output.append('%s: %s' % (err_type.__name__, err_value))
-        pprint("Error: traceback_output: %s" % (traceback_output)) 
+        print("Traceback: ", traceback_output )
         return traceback_output
-        
+
 
 class KibbleOrganisation:
     """ KibbleOrg with direct ElasticSearch access """
     def __init__(self, broker, org):
         """ Init an org, set up ElasticSearch for KibbleBits later on """
-        
+
         self.broker = broker
         self.id = org
-    
+
     def sources(self, sourceType = None, view = None):
         """ Get all sources or sources of a specific type for an org """
         s = []
@@ -280,7 +285,7 @@ class KibbleOrganisation:
                 }
             }
         )
-    
+
         for hit in res['hits']['hits']:
             if sourceType == None or hit['_source']['type'] == sourceType:
                 s.append(hit['_source'])
@@ -294,7 +299,7 @@ class Broker:
         if 'user' in es_config:
             auth = (es_config['user'], es_config['password'])
         pprint("Connecting to ElasticSearch database at %s:%i..." % (es_config['hostname'], es_config.get('port', 9200)))
-        
+
         defaultELConfig = {
             'host': es_config['hostname'],
             'port': int(es_config.get('port', 9200))
@@ -309,7 +314,7 @@ class Broker:
             defaultELConfig['verify_certs'] = False
             defaultELConfig['url_prefix'] = es_config.get('uri', '')
             defaultELConfig['http_auth'] = auth
-        
+
         es = elasticsearch.Elasticsearch([ defaultELConfig ],
             max_retries=5,
             retry_on_timeout=True
@@ -352,11 +357,11 @@ class Broker:
             if apidoc['dbversion'] < KIBBLE_DB_VERSION:
                 sys.stderr.write("The database '%s' uses an older structure format (version %u) than the scanners (version %u). Please upgrade your main Kibble server.\n" % (es_config['database'], apidoc['dbversion'], KIBBLE_DB_VERSION))
                 sys.exit(-1)
-    
+
     def organisations(self):
         """ Return a list of all organisations """
         orgs = []
-        
+
         # Run the search, fetch all orgs, 9999 max. TODO: Scroll???
         res = self.DB.search(
             index=self.config['elasticsearch']['database'],
@@ -368,10 +373,8 @@ class Broker:
                 }
             }
         )
-    
+
         for hit in res['hits']['hits']:
             org = hit['_source']['id']
             orgClass = KibbleOrganisation(self, org)
             yield orgClass
-        
-    

@@ -35,12 +35,12 @@ def accepts(source):
     # If the source equals the plugin name, assume a yes
     if source['type'] == 'ponymail':
         return True
-    
+
     # If it's of type 'mail', check the URL
     if source['type'] == 'mail':
         if re.match(r"(https?://.+)/list\.html\?(.+)@(.+)", source['sourceURL']):
             return True
-    
+
     # Default to not recognizing the source
     return False
 
@@ -86,9 +86,12 @@ def scan(KibbleBit, source):
         }
         KibbleBit.updateSource(source)
         return
-    
+
     # Pony Mail requires a UI cookie in order to work. Maked sure we have one!
     cookie = None
+
+    if not 'steps' in source:
+        source['steps'] = {}
     if 'creds' in source and source['creds']:
         cookie = source['creds'].get('cookie', None)
     if not cookie:
@@ -101,7 +104,7 @@ def scan(KibbleBit, source):
         }
         KibbleBit.updateSource(source)
         return
-    
+
     # Notify scanner and DB that this is valid and we've begun parsing
     KibbleBit.pprint("%s is a valid Pony Mail address, parsing" % source['sourceURL'])
     source['steps']['mail'] = {
@@ -111,13 +114,13 @@ def scan(KibbleBit, source):
         'good': True
     }
     KibbleBit.updateSource(source)
-    
-    
+
+
     # Get base URL, list and domain to parse
     u = url.group(1)
     l = url.group(2)
     d = url.group(3)
-    
+
     # Get this month
     dt = time.gmtime(time.time())
     firstYear = 1970
@@ -127,15 +130,15 @@ def scan(KibbleBit, source):
         month += 12
         year -= 1
     months = 0
-    
+
     # Hash for keeping records of who we know
     knowns = {}
-    
+
     # While we have older archives, continue to parse
     while firstYear <= year:
         statsurl = "%s/api/stats.lua?list=%s&domain=%s&d=%s" % (u, l, d, "%04u-%02u" % (year, month))
         dhash = hashlib.sha224((("%s %s") % (source['organisation'], statsurl)).encode('ascii', errors='replace')).hexdigest()
-        found = False        
+        found = False
         if KibbleBit.exists('mailstats', dhash):
             found = True
         if months <= 1 or not found: # Always parse this month's stats :)
@@ -147,7 +150,7 @@ def scan(KibbleBit, source):
                 js = plugins.utils.jsonapi.get(statsurl, cookie = cookie)
             except Exception as err:
                 KibbleBit.pprint("Server error, skipping this month")
-                month -= 1            
+                month -= 1
                 if month <= 0:
                     month += 12
                     year -= 1
@@ -196,7 +199,7 @@ def scan(KibbleBit, source):
                     'id': mlhash
                 }
                 KibbleBit.index('mailtop', mlhash, jst)
-                
+
             for email in js['emails']:
                 sender = email['from']
                 name = sender
@@ -214,7 +217,7 @@ def scan(KibbleBit, source):
                     if KibbleBit.exists('person',sid):
                         knowns[sender] = True
                 if not sender in knowns or name != sender:
-                    KibbleBit.append('person', 
+                    KibbleBit.append('person',
                         {
                         'upsert': True,
                         'name': name,
@@ -246,8 +249,8 @@ def scan(KibbleBit, source):
                 KibbleBit.append('email', jse)
             for sender in posters:
                 no_posters += 1
-            
-            
+
+
             jso = {
                 'organisation': source['organisation'],
                 'sourceURL': source['sourceURL'],
@@ -259,12 +262,12 @@ def scan(KibbleBit, source):
             }
             #print("Indexing as %s" % dhash)
             KibbleBit.index('mailstats', dhash, jso)
-        month -= 1            
+        month -= 1
         if month <= 0:
             month += 12
             year -= 1
-        
-    
+
+
     source['steps']['mail'] = {
         'time': time.time(),
         'status': 'Mail archives successfully scanned at ' + time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(time.time())),

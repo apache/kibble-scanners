@@ -14,13 +14,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import importlib
 import time
 import datetime
 import re
 import json
 import hashlib
-import plugins.utils.jsonapi
 import threading
 import requests.exceptions
 
@@ -36,7 +35,7 @@ def accepts(source):
     if source['type'] == 'jira':
         return True
     if source['type'] == "issuetracker":
-        jira = re.match(r"(https?://.+)/browse/([A-Z0-9]+)", url)
+        jira = re.match(r"(https?://.+)/browse/([A-Z0-9]+)", source)
         if jira:
             return True
     return False
@@ -106,12 +105,12 @@ def pchange(js):
 
 def scanTicket(KibbleBit, key, u, source, creds, openTickets):
     """ Scans a single ticket for activity and people """
-    
+
     dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], key) ).encode('ascii', errors='replace')).hexdigest()
     found = True
     doc= None
     parseIt = False
-    
+
     # the 'domain' var we try to figure out here is used
     # for faking email addresses and keep them unique,
     # in case JIRA has email visibility turned off.
@@ -119,7 +118,7 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
     m = re.search(r"https?://([^/]+)", u)
     if m:
         domain = m.group(1)
-    
+
     found = KibbleBit.exists('issue', dhash)
     if not found:
         KibbleBit.pprint("[%s] We've never seen this ticket before, parsing..." % key)
@@ -139,13 +138,14 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
                 KibbleBit.pprint("[%s] Ticket contains erroneous data from a previous scan, reparsing" % key)
             # This is just noise!
             #KibbleBit.pprint("[%s] Ticket hasn't changed, ignoring..." % key)
-    
+
     if parseIt:
         KibbleBit.pprint("[%s] Parsing data from JIRA at %s..." % (key, domain))
         queryURL = "%s/rest/api/2/issue/%s?fields=creator,reporter,status,issuetype,summary,assignee,resolutiondate,created,priority,changelog,comment,resolution,votes&expand=changelog" % (u, key)
         jiraURL = "%s/browse/%s" % (u, key)
+        jsonapi = importlib.import_module("plugins.utils.jsonapi")
         try:
-            tjson = plugins.utils.jsonapi.get(queryURL, auth = creds)
+            tjson = jsonapi.get(queryURL, auth = creds)
             if not tjson:
                 KibbleBit.pprint("%s does not exist (404'ed)" % key)
                 return False
@@ -157,12 +157,12 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             KibbleBit.pprint("Closed but no closer??")
         closerEmail = None
         status = 'closed' if st else 'open'
-        
+
         # Make sure we actually have field data to work with
         if not tjson.get('fields') or not tjson['fields'].get('created'):
             KibbleBit.pprint("[%s] JIRA response is missing field data, ignoring ticket." % key)
             return False
-            
+
         cd = getTime(tjson['fields']['created'])
         rd = getTime(tjson['fields']['resolutiondate']) if 'resolutiondate' in tjson['fields'] and tjson['fields']['resolutiondate'] else None
         comments = 0
@@ -190,7 +190,7 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
                     'upsert': True
                 }
                 KibbleBit.append('person', jsp)
-            
+
         if creator:
             creator = creator.replace(" dot ", ".", 10).replace(" at ", "@", 1)
             if not '@' in creator:
@@ -219,7 +219,7 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
             'created': cd,
             'closed': rd,
             'issuetype': 'issue',
-            'issueCloser': closerEmail, 
+            'issueCloser': closerEmail,
             'createdDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(cd)),
             'closedDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(rd)) if rd else None,
             'changeDate': time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(rd if rd else cd)),
@@ -234,8 +234,8 @@ def scanTicket(KibbleBit, key, u, source, creds, openTickets):
     #except Exception as err:
         #KibbleBit.pprint(err)
         #return False
-        
-    
+
+
 
 class jiraThread(threading.Thread):
 
@@ -247,7 +247,7 @@ class jiraThread(threading.Thread):
         self.source = source
         self.pendingTickets = pt
         self.openTickets = ot
-        
+
     def run(self):
         badOnes = 0
         while len(self.pendingTickets) > 0 and badOnes <= 50:
@@ -281,13 +281,17 @@ class jiraThread(threading.Thread):
 def scan(KibbleBit, source):
     jira = re.match(r"(https?://.+)/browse/([A-Z0-9]+)", source['sourceURL'])
     if jira:
-        
+
+        if not 'steps' in source:
+            source['steps'] = {}
+            #print("issue source %s" % source )
         # JIRA NEEDS credentials to do a proper scan!
         creds = None
-        if source['creds'] and 'username' in source['creds'] and source['creds']['username'] and len(source['creds']['username']) > 0:
+        if 'creds' in source and source['creds'] and 'username' in source['creds'] and source['creds']['username'] and len(source['creds']['username']) > 0:
             creds = "%s:%s" % (source['creds']['username'], source['creds']['password'])
         if not creds:
             KibbleBit.pprint("JIRA at %s requires authentication, but none was found! Bailing." % source['sourceURL'])
+
             source['steps']['issues'] = {
                 'time': time.time(),
                 'status': 'JIRA endpoint requires auth, but none was provided!',
@@ -296,7 +300,7 @@ def scan(KibbleBit, source):
             }
             KibbleBit.updateSource(source)
             return
-        
+
         source['steps']['issues'] = {
             'time': time.time(),
             'status': 'Parsing JIRA changes...',
@@ -304,7 +308,7 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         badOnes = 0
         jsa = []
         jsp = []
@@ -317,16 +321,17 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         # Get base URL, list and domain to parse
         u = jira.group(1)
         instance = jira.group(2)
         lastTicket = 0
         latestURL = "%s/rest/api/2/search?jql=project=%s+order+by+createdDate+DESC&fields=id,key&maxResults=1" % (u, instance)
         js = None
-        
+
+        jsonapi = importlib.import_module("plugins.utils.jsonapi")
         try:
-            js = plugins.utils.jsonapi.get(latestURL, auth = creds)
+            js = jsonapi.get(latestURL, auth = creds)
         except requests.exceptions.ConnectionError as err:
             KibbleBit.pprint("Connection error, skipping this ticket for now!")
             source['steps']['issues'] = {
@@ -342,8 +347,8 @@ def scan(KibbleBit, source):
             m = re.search(r"-(\d+)$", key)
             if m:
                 lastTicket = int(m.group(1))
-        
-        
+
+
         openTickets = []
         startAt = 0
         badTries = 0
@@ -351,7 +356,7 @@ def scan(KibbleBit, source):
             openURL = "%s/rest/api/2/search?jql=project=%s+and+status=open+order+by+createdDate+ASC&fields=id,key&maxResults=100&startAt=%u" % (u, instance, startAt)
             #print(openURL)
             try:
-                ojs = plugins.utils.jsonapi.get(openURL, auth = creds)
+                ojs = jsonapi.get(openURL, auth = creds)
                 if not 'issues' in ojs or len(ojs['issues']) == 0:
                     break
                 for item in ojs['issues']:
@@ -362,12 +367,12 @@ def scan(KibbleBit, source):
                 KibbleBit.pprint("JIRA borked, retrying")
                 badTries += 1
         KibbleBit.pprint("Found %u open tickets" % len(openTickets))
-        
+
         badOnes = 0
         for i in reversed(range(1,lastTicket+1)):
             key = "%s-%u" % (instance, i)
             pendingTickets.append([key, u, source])
-        
+
         threads = []
         block = threading.Lock()
         KibbleBit.pprint("Scanning tickets using 4 sub-threads")
@@ -375,10 +380,10 @@ def scan(KibbleBit, source):
             t = jiraThread(block, KibbleBit, source, creds, pendingTickets, openTickets)
             threads.append(t)
             t.start()
-        
+
         for t in threads:
             t.join()
-        
+
         KibbleBit.pprint("Done scanning %s" % source['sourceURL'])
 
         source['steps']['issues'] = {
@@ -388,4 +393,3 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-    

@@ -4,4 +4,4 @@ psutil
 python-dateutil
 requests
 pyyaml
-pre-commit
+pre_commit

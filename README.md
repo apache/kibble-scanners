@@ -5,6 +5,10 @@ The Kibble Scanners collect information for the Kibble Suite.
 
  - Edit conf/config.yaml to match your Kibble service
 
+### Dependencies
+
+ - a running Elasticsearch server
+
 ## How to run:
 
  - On a daily/weekly/whatever basis, run in folder src: `python3 kibble-scanner.py`.
@@ -75,7 +79,9 @@ The Kibble Scanners collect information for the Kibble Suite.
  - python3-certifi
  - python3-yaml
 
- ## Build environment
+### Testing
+
+  TBD
 
 ### Pre-commit
 
@@ -98,13 +104,19 @@ The Kibble Scanners collect information for the Kibble Suite.
   If installed the pre-commit reads the configuration, and will check on the hooks, currently pre-comit and pre-push.
   While the checks are not satisfied, just rerun the commit command until the hook checks are passed.
 
-### Testing
-
-  TBD
 
 ### Project build
 
-  TBD
+  After installation of the build tool
+
+    pip install -q build
+
+  build the project by running
+
+    python -m build
+
+  Find more information in project.toml file and [Setuptools](https://setuptools.pypa.io/).
 
 # Get involved
+
   TBD. Please see https://kibble.apache.org/ for details!

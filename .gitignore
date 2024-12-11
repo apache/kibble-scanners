@@ -1,0 +1,34 @@
+# Configuration file:
+/conf/config.yaml
+
+# Distribution / packaging
+build/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+*.egg-info/
+/dist/
+MANIFEST
+
+# Python cache / compiled files:
+__pycache__/
+*.py[cod]
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Environments
+/.venv*/
+/venv*/
+/.env*/
+/env*/
+
+
+# JetBrains IDE
+/.idea/

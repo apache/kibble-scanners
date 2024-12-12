@@ -41,19 +41,19 @@ def accepts(source):
 
 def scanJob(KibbleBit, source, bid, token, TLD):
     """ Scans a single job for activity """
-    NOW = int(datetime.datetime.utcnow().timestamp())
+    NOW = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
     dhash = hashlib.sha224( ("%s-%s-%s" % (source['organisation'], source['sourceURL'], bid) ).encode('ascii', errors='replace')).hexdigest()
     found = True
     doc= None
     parseIt = False
     found = KibbleBit.exists('cijob', dhash)
-    
+
     # Get the job data
     pages = 0
     offset = 0
     last_page = False
     oURL = "https://api.travis-ci.%s/repo/%s/builds" % (TLD, bid)
-    
+
     # For as long as pagination makes sense...
     while last_page == False:
         bURL = "https://api.travis-ci.%s/repo/%s/builds?limit=100&offset=%u" % (TLD, bid, offset)
@@ -65,13 +65,13 @@ def scanJob(KibbleBit, source, bid, token, TLD):
             if repojs['@pagination']['is_last']:
                 KibbleBit.pprint("Assuming this is the last page we need (travis says so)")
                 last_page = True
-                
+
             KibbleBit.pprint("%s has %u builds done" % (bURL, repojs['@pagination']['count']))
-            
+
             # BREAKER: If we go past count somehow, and travis doesn't say so, bork anyway
             if repojs['@pagination']['count'] < offset:
                 return True
-            
+
             offset += 100
             for build in repojs.get('builds', []):
                 buildID = build['id']
@@ -81,15 +81,15 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                 duration = build['duration']
                 completed = True if duration else False
                 duration = duration or 0
-                
-                
+
+
                 buildhash = hashlib.sha224( ("%s-%s-%s-%s" % (source['organisation'], source['sourceURL'], bid, buildID) ).encode('ascii', errors='replace')).hexdigest()
                 builddoc = None
                 try:
                     builddoc = KibbleBit.get('ci_build', buildhash)
                 except:
                     pass
-                
+
                 # If this build already completed, no need to parse it again
                 if builddoc and builddoc.get('completed', False):
                     # If we're on page > 1 and we've seen a completed build, assume
@@ -99,7 +99,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                         last_page = True
                         break
                     continue
-                
+
                 # Get build status (success, failed, canceled etc)
                 status = 'building'
                 if build['state'] in ['finished', 'passed']:
@@ -108,17 +108,17 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                     status = 'failed'
                 if build['state'] in ['aborted', 'canceled']:
                     status = 'aborted'
-                
+
                 FIN = 0
                 STA = 0
                 if finishedAt:
                     FIN = datetime.datetime.strptime(finishedAt, "%Y-%m-%dT%H:%M:%SZ").timestamp()
                 if startedAt:
                     STA = int(datetime.datetime.strptime(startedAt, "%Y-%m-%dT%H:%M:%SZ").timestamp())
-        
+
                 # We don't know how to calc queues yet, set to 0
                 queuetime = 0
-    
+
                 doc = {
                     # Build specific data
                     'id': buildhash,
@@ -132,7 +132,7 @@ def scanJob(KibbleBit, source, bid, token, TLD):
                     'started': STA,
                     'ci': 'travis',
                     'queuetime': queuetime,
-                    
+
                     # Standard docs values
                     'sourceID': source['sourceID'],
                     'organisation': source['organisation'],
@@ -158,7 +158,7 @@ class travisThread(threading.Thread):
         self.source = source
         self.jobs = jobs
         self.tld = TLD
-        
+
     def run(self):
         badOnes = 0
         while len(self.jobs) > 0 and badOnes <= 50:
@@ -201,7 +201,7 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         badOnes = 0
         pendingJobs = []
         KibbleBit.pprint("Parsing Travis activity at %s" % source['sourceURL'])
@@ -212,7 +212,7 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-        
+
         # Travis needs a token
         token = None
         if source['creds'] and 'token' in source['creds'] and source['creds']['token'] and len(source['creds']['token']) > 0:
@@ -220,14 +220,14 @@ def scan(KibbleBit, source):
         else:
             KibbleBit.pprint("Travis CI requires a token to work!")
             return False
-            
+
         # Get the job list, paginated
         sURL = source['sourceURL']
-        
+
         # Used for pagination
         jobs = 100
         offset = 0
-        
+
         # Counters; builds queued, running and total jobs
         queued = 0 # We don't know how to count this yet
         building = 0
@@ -235,16 +235,16 @@ def scan(KibbleBit, source):
         blocked = 0 # Dunno how to count yet
         stuck = 0 # Ditto
         avgqueuetime = 0 # Ditto, fake it
-        
+
         maybeQueued = []
         while jobs == 100:
             URL = "https://api.travis-ci.%s/repos?repository.active=true&sort_by=current_build:desc&offset=%u&limit=100&include=repository.last_started_build" % (TLD, offset)
             offset += 100
             r = requests.get(URL, headers = {'Travis-API-Version': '3', 'Authorization': "token %s" % token})
-            
+
             if r.status_code != 200:
                 KibbleBit.pprint("Travis did not return a 200 Okay, bad token?!")
-                
+
                 source['steps']['travis'] = {
                     'time': time.time(),
                     'status': 'Travis CI scan failed at ' + time.strftime("%Y/%m/%d %H:%M:%S", time.gmtime(time.time()) + ". Bad token??!"),
@@ -253,8 +253,8 @@ def scan(KibbleBit, source):
                 }
                 KibbleBit.updateSource(source)
                 return
-            
-            
+
+
             # For each build job
             js = r.json()
             for repo in js['repositories']:
@@ -265,15 +265,15 @@ def scan(KibbleBit, source):
                     if cb['state'] in ['started','created', 'queued', 'pending']:
                         for job in cb.get('jobs', []):
                             maybeQueued.append(job['id'])
-                        
-                
+
+
                 # Queue up build jobs for the threaded scanner
                 bid = repo['id']
                 pendingJobs.append(bid)
-            
+
             jobs = len(js['repositories'])
             KibbleBit.pprint("Scanned %u jobs..." % total)
-            
+
         # Find out how many building and pending jobs
         for jobID in maybeQueued:
             URL = "https://api.travis-ci.%s/job/%u" % (TLD, jobID)
@@ -288,11 +288,11 @@ def scan(KibbleBit, source):
                     blocked += 1 # Queued in Travis generally means a job can't find an executor, and thus is blocked.
                     KibbleBit.pprint("Job %u is pending" % jobID)
         KibbleBit.pprint("%u building, %u queued..." % (building, queued))
-        
+
         # Save queue snapshot
-        NOW = int(datetime.datetime.utcnow().timestamp())
+        NOW = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
         queuehash = hashlib.sha224( ("%s-%s-queue-%s" % (source['organisation'], source['sourceURL'], int(time.time())) ).encode('ascii', errors='replace')).hexdigest()
-        
+
         # Write up a queue doc
         queuedoc = {
             'id': queuehash,
@@ -304,17 +304,17 @@ def scan(KibbleBit, source):
             'stuck': stuck,
             'avgwait': avgqueuetime,
             'ci': 'travis',
-            
+
             # Standard docs values
             'sourceID': source['sourceID'],
             'organisation': source['organisation'],
             'upsert': True,
         }
         KibbleBit.append('ci_queue', queuedoc)
-        
-        
+
+
         KibbleBit.pprint("Found %u jobs in Travis" % len(pendingJobs))
-        
+
         threads = []
         block = threading.Lock()
         KibbleBit.pprint("Scanning jobs using 4 sub-threads")
@@ -322,11 +322,11 @@ def scan(KibbleBit, source):
             t = travisThread(block, KibbleBit, source, token, pendingJobs, TLD)
             threads.append(t)
             t.start()
-        
+
         for t in threads:
             t.join()
 
-        # We're all done, yaay        
+        # We're all done, yaay
         KibbleBit.pprint("Done scanning %s" % source['sourceURL'])
 
         source['steps']['travis'] = {
@@ -336,4 +336,3 @@ def scan(KibbleBit, source):
             'good': True
         }
         KibbleBit.updateSource(source)
-    

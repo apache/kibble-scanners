@@ -17,8 +17,6 @@
 
 """ This is the Kibble git utility plugin """
 
-import os
-import sys
 import subprocess
 import re
 
@@ -30,7 +28,7 @@ def defaultBranch(source, datapath, KibbleBit = None):
     if KibbleBit and KibbleBit.config.get('git'):
         wanted_branches = KibbleBit.config['git'].get('wanted_branches', wanted_branches)
     foundBranch = False
-    
+
     # For each wanted branch, in order, look for it in our clone,
     # and return the name if found.
     for B in wanted_branches:

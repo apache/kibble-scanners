@@ -50,8 +50,11 @@ def scan(KibbleBit, source):
     url = source['sourceURL']
     rootpath = "%s/%s/git" % (KibbleBit.config['scanner']['scratchdir'], source['organisation'])
     gpath = os.path.join(rootpath, rid)
-    
-    if 'steps' in source and source['steps']['sync']['good'] and os.path.exists(gpath):
+
+    if not 'steps' in source:
+        source['steps'] = {}
+
+    if source['steps']['sync']['good'] and os.path.exists(gpath):
         source['steps']['census'] = {
                 'time': time.time(),
                 'status': 'Census count started at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
@@ -177,7 +180,7 @@ def scan(KibbleBit, source):
                 # Make a list of changed files, max 1024
                 filelist = list(files_touched)
                 filelist = filelist[:1023]
-                
+
                 # ES commit documents
                 tsd = ts - (ts % 86400)
                 js = {
@@ -222,7 +225,7 @@ def scan(KibbleBit, source):
                     'organisation': source['organisation'],
                     'id' : hashlib.sha1( ("%s%s" % (source['organisation'], ce)).encode('ascii', errors='replace')).hexdigest()
                 })
-                KibbleBit.append ( 'person', 
+                KibbleBit.append ( 'person',
                     {
                     'upsert': True,
                     'name': an,
@@ -234,7 +237,7 @@ def scan(KibbleBit, source):
                     )
                 KibbleBit.append('code_commit', js)
                 KibbleBit.append('code_commit_unique', jsx)
-                
+
         if True: # Do file changes?? Might wanna make this optional
             KibbleBit.pprint("Scanning file changes for %s" % source['sourceURL'])
             for filename in modificationDates:
@@ -257,7 +260,7 @@ def scan(KibbleBit, source):
                     del jsfe['created']
                     del jsfe['createdDate']
                 KibbleBit.append('file_history', jsfe)
-                
+
         source['steps']['census'] = {
                 'time': time.time(),
                 'status': 'Census count completed at ' + time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
@@ -266,5 +269,3 @@ def scan(KibbleBit, source):
             }
         source['census'] = time.time()
         KibbleBit.updateSource(source)
-       
-
